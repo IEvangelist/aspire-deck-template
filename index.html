@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f8f7fc">
+    <base href="%BASE_URL%">
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%brand/aspire-icon-32.svg">
+    <title>Aspire presentation</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#presentation">Skip to presentation</a>
+    <header id="toolbar" class="toolbar" hidden>
+      <a class="brand-link" href="#/intro" aria-label="Go to title slide">
+        <img src="%BASE_URL%brand/aspire-icon-32.svg" width="32" height="32" alt="Aspire">
+      </a>
+      <span id="current-title" class="current-title"></span>
+      <output id="slide-position" aria-live="polite"></output>
+      <nav aria-label="Presentation controls">
+        <button id="previous" type="button" aria-label="Previous slide or fragment" title="Previous"><span data-icon="arrowLeft"></span></button>
+        <button id="next" class="next-button" type="button" aria-label="Next slide or fragment"><span class="desktop-label">Next</span><span data-icon="arrowRight"></span></button>
+        <button id="menu-toggle" type="button" aria-label="Open slide menu" title="Menu" aria-haspopup="dialog" aria-controls="deck-menu" aria-expanded="false"><span data-icon="menu"></span></button>
+      </nav>
+    </header>
+    <main id="presentation" class="reveal" aria-label="Presentation" tabindex="-1">
+      <div id="slide-viewport" class="slide-viewport">
+       <div class="slides">
+        <section id="intro" class="title-slide">
+          <h1>Loading presentation</h1>
+        </section>
+        <section data-markdown data-separator="^---[ \t]*\r?$" data-separator-vertical="^--[ \t]*\r?$" data-separator-notes="^Notes?:"></section>
+       </div>
+      </div>
+    </main>
+    <dialog id="deck-menu" class="deck-menu" aria-labelledby="menu-heading">
+      <div class="menu-heading">
+        <h2 id="menu-heading">Your slides</h2>
+        <form method="dialog"><button type="submit" aria-label="Close menu"><span data-icon="close"></span></button></form>
+      </div>
+      <nav aria-label="Slide navigation"><ol id="slide-list" class="slide-list"></ol></nav>
+      <div class="menu-controls">
+        <button id="theme" type="button">Dark theme <kbd>T</kbd></button>
+        <button id="read-mode" type="button" aria-pressed="false">Reading mode <kbd>R</kbd></button>
+        <button id="overview" type="button"><span data-icon="screen"></span>Overview <kbd>Esc</kbd></button>
+        <button id="notes" type="button"><span data-icon="book"></span>Speaker notes <kbd>S</kbd></button>
+        <a id="print-link" target="_blank" rel="noopener"><span data-icon="file"></span>Print / PDF</a>
+      </div>
+      <p class="menu-help">Arrow keys or Space to advance. Scroll code without advancing. Press Esc to close this menu.</p>
+    </dialog>
+    <p id="deck-status" class="deck-status" role="status"></p>
+    <section id="failure" class="failure" role="alert" hidden>
+      <h1>Presentation could not load</h1>
+      <p id="failure-detail"></p>
+      <p>Correct the named file or field, then reload. For local use, start <code>npm run dev</code>; do not open the HTML as a file.</p>
+    </section>
+    <noscript>This presentation needs JavaScript. Read the Markdown source in the repository instead.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

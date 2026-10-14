@@ -1,0 +1,242 @@
+<!-- .slide: id="make-it-yours" -->
+## Make it yours
+
+One deck. No application to maintain.
+
+- **Your introduction** lives in `deck.config.json`.
+- **Your slides** live in `slides.md`.
+- **Your media** lives in `public/assets/`.
+
+Note:
+Replace these starter slides with your own story. The intro is generated from
+your configuration, so you do not need to repeat it in this file.
+
+---
+
+<!-- .slide: id="write-in-markdown" -->
+## Write in Markdown
+
+Put `---` on its own line to start another slide.
+
+```markdown
+## Your next idea
+
+A short explanation, a useful example.
+
+- Something worth remembering
+- Something worth trying
+```
+
+Note:
+Keep one main idea on each slide. Ordinary Markdown is enough; HTML is optional
+for advanced layouts.
+
+---
+
+<!-- .slide: id="copyable-code" -->
+## Code you can copy
+
+Fenced code gets real syntax highlighting. Copy keeps the original text.
+
+```bash
+npm ci
+npm run dev
+
+# Build a static presentation
+npm run build
+npm run preview
+```
+<!-- .element: data-caption="Local deck workflow" -->
+
+Note:
+These commands run the deck, not an Aspire application. No .NET SDK, Docker,
+or Aspire CLI is required.
+
+---
+
+<!-- .slide: id="apphost-example" -->
+## A small AppHost
+
+```typescript
+import { createBuilder } from "./.aspire/modules/aspire.mjs";
+
+const builder = await createBuilder();
+const api = await builder.addNodeApp("api", "./api", "src/index.ts")
+  .withHttpEndpoint({ env: "PORT" });
+await builder.addViteApp("web", "./web").withReference(api).waitFor(api);
+
+await builder.build().run();
+```
+<!-- .element: data-caption="apphost.mts | reference only" -->
+
+An [official-guide](https://aspire.dev/get-started/first-app.md) reference:
+the app folders and generated modules belong to a separate Aspire app.
+<!-- .element: class="source-line" -->
+
+Note:
+This is a slide example, not a runnable app included with this template.
+The reference models an API, a frontend, and the dependency between them.
+
+---
+
+<!-- .slide: id="rich-architecture" -->
+## Route a richer model
+
+<div data-diagram="architecture"></div>
+
+Edit `diagrams.json`. Advance the model, ports, connections, and return path.
+<!-- .element: class="source-line" -->
+
+Note:
+This is a generic authoring example, not a running app. Each full SVG route,
+arrowhead, and caption waits for both endpoint nodes. Back rewinds them.
+The narrow layout lists the same nodes and every relationship.
+
+---
+
+<!-- .slide: id="model-to-observation" -->
+## Show the relationship
+
+<ol class="diagram-flow" aria-label="AppHost model to resources to observation">
+  <li>
+    <div class="diagram-node">
+      <span data-icon="code"></span>
+      <h3>Model</h3>
+      <p>Describe the resources and their relationships.</p>
+    </div>
+  </li>
+  <li>
+    <span class="diagram-connector fragment" data-fragment-index="0" data-icon="arrowRight"></span>
+    <div class="diagram-node">
+      <span data-icon="cloud"></span>
+      <h3>Resources</h3>
+      <p>Connect the services your application needs.</p>
+    </div>
+  </li>
+  <li>
+    <span class="diagram-connector fragment" data-fragment-index="1" data-icon="arrowRight"></span>
+    <div class="diagram-node">
+      <span data-icon="graph"></span>
+      <h3>Observation</h3>
+      <p>Understand what happens when they run.</p>
+    </div>
+  </li>
+</ol>
+
+Advance to draw each connection. The labels come first.
+<!-- .element: class="source-line" -->
+
+Note:
+This editable HTML diagram lives entirely in Markdown. The connectors use
+native fragments. On narrow screens it stacks vertically without tiny labels.
+Reading, reduced-motion, and print show the complete relationship immediately.
+
+---
+
+<!-- .slide: id="animate-a-model" data-auto-animate="true" data-auto-animate-id="model-example" -->
+## Change the model
+
+<ol class="diagram-flow two-nodes" aria-label="Frontend connected to API">
+  <li><div class="diagram-node" data-id="example-web">
+    <span data-icon="screen"></span><h3>Frontend</h3><p>The experience people use.</p>
+  </div></li>
+  <li><span class="diagram-connector" data-icon="arrowRight"></span>
+    <div class="diagram-node" data-id="example-api">
+      <span data-icon="code"></span><h3>API</h3><p>The service behind it.</p>
+    </div>
+  </li>
+</ol>
+
+Next adds a resource using Reveal's native **auto-animate**.
+<!-- .element: class="source-line" -->
+
+Note:
+Matching data-id attributes connect the same elements on consecutive slides.
+There is no autoplay, custom animation controller, or animation library.
+
+---
+
+<!-- .slide: id="animate-add-cache" data-auto-animate="true" data-auto-animate-id="model-example" -->
+## Change the model
+
+<ol class="diagram-flow" aria-label="Frontend connected to API connected to cache">
+  <li><div class="diagram-node" data-id="example-web">
+    <span data-icon="screen"></span><h3>Frontend</h3><p>The experience people use.</p>
+  </div></li>
+  <li><span class="diagram-connector" data-icon="arrowRight"></span>
+    <div class="diagram-node" data-id="example-api">
+      <span data-icon="code"></span><h3>API</h3><p>The service behind it.</p>
+    </div>
+  </li>
+  <li><span class="diagram-connector" data-icon="arrowRight"></span>
+    <div class="diagram-node" data-id="example-cache">
+      <span data-icon="database"></span><h3>Cache</h3><p>An optional dependency.</p>
+    </div>
+  </li>
+</ol>
+
+Two frames. Shared IDs. A change people can follow.
+<!-- .element: class="source-line" -->
+
+Note:
+This is an illustrative model, not proof of a running application.
+Reduced-motion, reading, and print do not wait for animation.
+
+---
+
+<!-- .slide: id="add-media" -->
+## Give the idea space
+
+![Unchanged official Aspire mark](brand/aspire-icon-256.svg)
+<!-- .element: class="slide-image align-center" -->
+
+Add your own image with `![Useful alt text](assets/your-image.webp)`.
+
+Note:
+Put your file in public/assets, then refer to it as assets/your-image.webp.
+Images retain their full aspect ratio. Use a meaningful description.
+
+---
+
+<!-- .slide: id="reveal-the-story" -->
+## Reveal the story
+
+- Start with the idea. <!-- .element: class="fragment" -->
+- Add the evidence. <!-- .element: class="fragment" -->
+- Leave a next step. <!-- .element: class="fragment" -->
+
+Fragments follow your advance, not a timer.
+
+Note:
+Press Space or Next to reveal each point. Reading, print, and reduced-motion
+modes show every point immediately.
+
+--
+
+<!-- .slide: id="a-little-deeper" -->
+## Go a little deeper
+
+Put `--` on its own line for a vertical slide.
+
+Use **Down** to explore a stack, or **Next** to continue in order.
+The menu and counter include every slide, including this one.
+
+Note:
+Vertical slides are optional. Use them for a small aside or a deeper example,
+not as a requirement for ordinary authoring.
+
+---
+
+<!-- .slide: id="publish-on-push" -->
+## From your repo to the room
+
+1. Use this template and edit your introduction and slides.
+2. In **Settings > Pages**, select **GitHub Actions** once.
+3. Push your changes. The workflow checks, builds, and publishes.
+
+Your content. Your repository. Your presentation.
+
+Note:
+The README covers setup, controls, PDF export, configuration, and licenses.
+Template copies publish independently; they do not automatically sync updates
+from this repository.

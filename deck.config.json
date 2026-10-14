@@ -1,0 +1,18 @@
+{
+  "title": "Your Aspire talk",
+  "subtitle": "A clear idea. A useful story.",
+  "description": "An Aspire-themed presentation. Make it yours with Markdown.",
+  "presenter": {
+    "name": "Your name",
+    "role": "Your role",
+    "organization": "Your organization",
+    "avatar": {
+      "src": "assets/avatar-placeholder.svg",
+      "alt": "Placeholder avatar; replace with your own image"
+    }
+  },
+  "links": [
+    { "label": "Aspire", "url": "https://aspire.dev/" },
+    { "label": "reveal.js", "url": "https://revealjs.com/" }
+  ]
+}

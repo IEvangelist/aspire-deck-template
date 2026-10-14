@@ -1,0 +1,88 @@
+import { readFileSync } from 'node:fs';
+import { expect, test } from '@playwright/test';
+import { build, preview, type PreviewServer } from 'vite';
+import { parseDeckJson } from '../src/config';
+import { exampleMarkdown } from './helpers';
+
+for (const base of ['/', '/another-name/']) {
+  test(`production authoring assets, navigation and canonical metadata at ${base}`, async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    const outDir = testInfo.outputPath('site');
+    const oldBase = process.env.PAGES_BASE_PATH;
+    const oldUrl = process.env.PAGES_URL;
+    const canonical = `https://presentations.example${base}`;
+    let server: PreviewServer | undefined;
+    try {
+      process.env.PAGES_BASE_PATH = base;
+      process.env.PAGES_URL = canonical;
+      await build({ build: { outDir }, logLevel: 'error' });
+      server = await preview({
+        configFile: false, base, build: { outDir },
+        preview: { host: '127.0.0.1', port: 0, strictPort: true },
+      });
+      const address = server.httpServer.address();
+      if (!address || typeof address === 'string') throw new Error('Preview did not bind an isolated port.');
+      const origin = `http://127.0.0.1:${address.port}`;
+      const failures: string[] = [];
+      page.on('pageerror', (error) => failures.push(error.message));
+      page.on('requestfailed', (request) => failures.push(request.url()));
+      page.on('response', (response) => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
+      const config = parseDeckJson(readFileSync('deck.config.json', 'utf8'));
+      await page.route(/\/assets\/deck\.config-[^/]+\.json$/, (route) => route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...config,
+          presenter: { ...config.presenter, avatar: { src: 'brand/aspire-icon-256.svg', alt: 'Portable image test' } },
+        }),
+      }));
+      await page.route(/\/assets\/slides-[^/]+\.md$/, (route) => route.fulfill({
+        contentType: 'text/markdown',
+        body: `${exampleMarkdown}\n---\n## Python on Pages\n\n\`\`\`py\nprint("portable")\n\`\`\`\n\n---\n## Rust on Pages\n\n\`\`\`rs\nfn main() { println!("portable"); }\n\`\`\`\n\n---\n## SQL on Pages\n\n\`\`\`sql\nSELECT title FROM talks;\n\`\`\`\n\n---\n## Rich model on Pages\n<div data-diagram="architecture"></div>\n`,
+      }));
+      const response = await page.goto(`${origin}${base}?mode=present`);
+      const html = await response!.text();
+      expect(html).toContain(`href="${canonical}"`);
+      await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');
+      await page.evaluate(() => document.fonts.ready);
+      await expect(page).toHaveTitle(config.title);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
+      await expect(page.locator('.presenter-avatar')).toHaveAttribute('src', `${origin}${base}brand/aspire-icon-256.svg`);
+      const assets = await page.locator('img').evaluateAll((images) => images.map((image) => {
+        if (!(image instanceof HTMLImageElement)) throw new Error('Expected an image element.');
+        return { url: image.src, loaded: image.complete && image.naturalWidth > 0 };
+      }));
+      expect(assets.every((asset) => asset.loaded && asset.url.startsWith(`${origin}${base}`))).toBe(true);
+      expect(await page.evaluate(() => document.fonts.check('600 32px Poppins'))).toBe(true);
+      for (const language of ['python', 'rust', 'sql']) {
+        const code = page.locator(`code[data-language="${language}"]`);
+        await expect(code).toHaveCount(1);
+        await expect(code.locator('span')).not.toHaveCount(0);
+      }
+      await expect(page.locator('svg.architecture-svg')).toHaveCount(1);
+      await expect(page.locator('svg.architecture-svg .graph-edge')).toHaveCount(4);
+      const count = await page.locator('#slide-list a').count();
+      await expect(page.locator('#slide-position')).toHaveText(`1 / ${count}`);
+      const first = await page.locator('#slide-list a').nth(1).getAttribute('data-slide');
+      await page.locator('#start-presentation').click();
+      await expect(page.locator('#slide-position')).toHaveText(`2 / ${count}`);
+      expect(new URL(page.url()).hash).toBe(`#/${first}`);
+      await page.locator('#menu-toggle').click();
+      const last = await page.locator('#slide-list a').last().getAttribute('data-slide');
+      await page.locator('#slide-list a').last().click();
+      await expect(page.locator('#slide-position')).toHaveText(`${count} / ${count}`);
+      expect(new URL(page.url()).hash).toBe(`#/${last}`);
+      await page.locator('#menu-toggle').click();
+      expect(await page.locator('#print-link').getAttribute('href')).toMatch(new RegExp(`${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\?[^#]*print-pdf`));
+      for (const file of ['Poppins-OFL.txt', 'aspire-brand-CC0.txt', 'revealjs-MIT.txt', 'highlightjs-BSD.txt', 'octicons-MIT.txt']) {
+        expect((await page.request.get(`${origin}${base}licenses/${file}`)).ok()).toBe(true);
+      }
+      expect(failures).toEqual([]);
+    } finally {
+      if (oldBase === undefined) delete process.env.PAGES_BASE_PATH;
+      else process.env.PAGES_BASE_PATH = oldBase;
+      if (oldUrl === undefined) delete process.env.PAGES_URL;
+      else process.env.PAGES_URL = oldUrl;
+      if (server) await new Promise<void>((resolve, reject) => server!.httpServer.close((error) => error ? reject(error) : resolve()));
+    }
+  });
+}

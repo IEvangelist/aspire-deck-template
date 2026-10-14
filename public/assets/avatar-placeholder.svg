@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300" role="img" aria-labelledby="title description">
+  <title id="title">Placeholder avatar</title>
+  <desc id="description">A neutral person symbol labeled Your photo. Replace with your own image.</desc>
+  <rect width="300" height="300" rx="16" fill="#eeebf9"/>
+  <circle cx="150" cy="104" r="40" fill="#7455dd"/>
+  <path d="M70 228v-24a80 80 0 0 1 160 0v24Z" fill="#7455dd"/>
+  <text x="150" y="271" text-anchor="middle" fill="#1f1e33" font-family="system-ui,sans-serif" font-size="20">Your photo</text>
+</svg>
