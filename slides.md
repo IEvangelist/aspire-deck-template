@@ -227,6 +227,59 @@ not as a requirement for ordinary authoring.
 
 ---
 
+<!-- .slide: id="statement-layout" class="layout-statement" -->
+## One slide. <em class="accent">One idea.</em>
+
+A clear claim gives the audience something to carry into the next example.
+<!-- .element: class="layout-support" -->
+
+Note:
+This statement layout uses native slide and element classes. Keep one strong
+claim and a short supporting paragraph; move the detailed evidence to another slide.
+
+---
+
+<!-- .slide: id="split-layout" class="layout-split" -->
+## Keep the claim beside the evidence
+
+<div class="layout-copy">
+  <h3>Content and shell</h3>
+  <p>Write the story in Markdown. Reuse the presentation shell.</p>
+</div>
+
+<figure class="layout-visual">
+  <img src="brand/aspire-icon-256.svg" alt="Unchanged official Aspire mark">
+  <figcaption class="layout-caption">The visual gets its own space, without cropping or tiny text.</figcaption>
+</figure>
+
+Note:
+The two roles are explicit HTML classes inside native Markdown, not nested
+section elements. They stack in reading and narrow modes in the same DOM order.
+Use a full-width slide for a large graph. A graph in a narrow column uses the
+same-definition node/relationship fallback, not shrunken SVG labels.
+
+---
+
+<!-- .slide: id="comparison-layout" class="layout-comparison" -->
+## Choose a useful pace
+
+<div class="comparison-columns">
+  <div class="comparison-panel">
+    <h3>One dense slide</h3>
+    <p>Several ideas compete for the same space.</p>
+  </div>
+  <div class="comparison-panel">
+    <h3>A focused sequence</h3>
+    <p>Each idea gets a claim, an example, and a moment to land.</p>
+  </div>
+</div>
+
+Note:
+Compare like with like. The paired panels share a title and a reading order;
+they are not a card grid to apply to every slide.
+
+---
+
 <!-- .slide: id="publish-on-push" -->
 ## From your repo to the room
 

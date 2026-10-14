@@ -64,7 +64,7 @@ export function renderDiagrams(definitions: Diagrams, scope: ParentNode = docume
         <defs><marker id="${prefix}-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L8 5 L1 9" class="arrow-head" /></marker></defs>
         ${markup}
       </svg>
-      <div class="architecture-mobile" aria-label="${escape(diagram.title)}">
+      <div class="architecture-mobile" role="region" tabindex="0" aria-label="${escape(diagram.title)}: nodes and connections">
         <ol class="graph-node-list">${diagram.nodes.map((node) => `<li ${fragment(node.stage)} data-mobile-node="${node.id}">
           ${iconElement(node.icon).outerHTML}<div><strong>${escape(node.title)}</strong><p>${escape(node.detail.join('. '))}</p></div>
         </li>`).join('')}</ol>

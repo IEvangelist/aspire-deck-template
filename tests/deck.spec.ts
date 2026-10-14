@@ -24,6 +24,9 @@ test('configuration changes intro, metadata, avatar, event, and arbitrary links'
   await expect(page.locator('.presenter-avatar')).toHaveAttribute('alt', 'Test image, not a portrait');
   await expect(page).toHaveTitle('A configurable presentation');
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', 'A custom summary');
+  await expect(page.locator('meta[property="og:description"]')).toHaveAttribute('content', 'A custom summary');
+  await expect(page.locator('#intro .lede')).toHaveCount(0);
+  await expect(page.locator('#intro')).not.toContainText('A custom summary');
   expect(await page.locator('.presenter-avatar').evaluate((image) => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0)).toBe(true);
   await page.locator('#start-presentation').click();
   await expect(page.locator('#intro')).not.toBeVisible();

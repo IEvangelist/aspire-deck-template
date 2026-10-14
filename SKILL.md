@@ -34,6 +34,9 @@ The header is intentionally compact.
 The introduction uses the original source layout and a clearly labeled neutral
 placeholder avatar. Replace the configured avatar or omit it; never copy a
 personal portrait or invent a headshot.
+Keep title primary, subtitle supporting, and presenter/event/links secondary.
+`description` remains document/social metadata only; do not echo it as another
+audience paragraph or add new intro flags.
 
 Use `---` on its own line for horizontal slides, optionally `--` for vertical
 slides. Add a stable native ID when links need to survive reordering:
@@ -67,6 +70,37 @@ Source code always remains left-aligned, including on a centered slide.
 Images retain their aspect ratio. Do not crop screenshots, stretch logos,
 hide meaningful content, or put a small image inside a giant empty frame.
 Basic HTML is supported for layouts that Markdown cannot express.
+
+## Native layout presets
+
+Use three optional compositions, not a new visual system or a card grid:
+
+- `layout-statement`: one Markdown `##` claim, optionally a selective
+  `<em class="accent">` phrase, then a short paragraph with
+  `<!-- .element: class="layout-support" -->`.
+- `layout-split`: a Markdown heading followed by explicit `layout-copy` and
+  `layout-visual` groups. Use a `div` for copy and a `figure` with an image and
+  `layout-caption` for evidence. Give the visual real space and useful alt text.
+- `layout-comparison`: a Markdown heading, then `comparison-columns` with two
+  `comparison-panel` divs containing genuinely comparable headings/content.
+
+Apply a preset with `<!-- .slide: id="my-slide" class="layout-split" -->`.
+Copy exact editable examples from the README or `slides.md`. Ordinary Markdown
+remains ordinary Markdown; HTML groups are explicit, not guessed into slots.
+Never use nested `section` tags for columns, because Reveal treats them as
+vertical slides. Keep the existing title/content anchors, frame, font family,
+palette, and one main claim. No decorative motion on every paragraph.
+
+Columns stack in source/reading order on narrow, compact, and reading views.
+Code must stay left-aligned, preserve literal text, and retain its fixed-caption
+body scroller. Captions/supporting copy are secondary but remain visible and
+contrast-safe; do not hide controls or use timed/hover-only affordances.
+
+Keep a large rich graph full-width. A graph in a narrow column must use the
+same-data container-aware HTML fallback rather than tiny SVG labels. In desktop
+split presentation its full content is reachable in a labeled keyboard-scrolling
+region; read/compact/print expand it. Check the real column and all relationships,
+not just the browser viewport width or a CSS class.
 
 ## Diagrams, icons, and motion
 

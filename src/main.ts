@@ -108,7 +108,6 @@ function renderIntro(config: DeckConfig) {
   copy.className = 'title-copy';
   copy.append(text('h1', config.title));
   if (config.subtitle) copy.append(text('p', config.subtitle, 'subtitle'));
-  if (config.description) copy.append(text('p', config.description, 'lede'));
   const start = text('a', 'Start presentation', 'primary-link');
   start.id = 'start-presentation';
   start.append(iconElement('arrowRight'));
@@ -375,7 +374,7 @@ function wireControls() {
   }, true);
   window.addEventListener('keydown', (event) => {
     if (!reading || menu.open || event.altKey || event.ctrlKey || event.metaKey ||
-        (event.target instanceof Element && event.target.closest('a, button, input, textarea, select, pre, [contenteditable]'))) return;
+        (event.target instanceof Element && event.target.closest('a, button, input, textarea, select, pre, [role="region"][tabindex], [contenteditable]'))) return;
     const direction = ['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(event.key) ? 1 :
       ['ArrowLeft', 'ArrowUp', 'PageUp'].includes(event.key) ? -1 : 0;
     if (direction) {
@@ -438,7 +437,7 @@ async function start() {
     autoAnimate: !staticMode(),
     markdown: { headerIds: false, mangle: false },
     keyboardCondition: () => !menu.open && !(document.activeElement instanceof Element &&
-      document.activeElement.closest('a, button, input, textarea, select, pre, [contenteditable]')),
+      document.activeElement.closest('a, button, input, textarea, select, pre, [role="region"][tabindex], [contenteditable]')),
     plugins: [() => markdownPlugin, Notes],
   });
   await deck.initialize();

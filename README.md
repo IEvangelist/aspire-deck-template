@@ -52,7 +52,7 @@ It covers authoring, alignment, diagrams, motion, code, and release checks.
 {
   "title": "Your talk title",
   "subtitle": "The idea you want people to remember",
-  "description": "A short summary for the intro and document/social metadata.",
+  "description": "A short summary for document and social metadata.",
   "presenter": {
     "name": "Your name",
     "role": "Your role",
@@ -80,6 +80,9 @@ optional text fields can be omitted or empty. Link labels are arbitrary:
 add, remove, or reorder the list without an icon or code change.
 The starter config includes a clearly labeled, neutral placeholder avatar.
 Replace `assets/avatar-placeholder.svg` with your image, or remove `avatar`.
+The audience intro shows the title and subtitle, with presenter/event/links
+secondary. `description` is **metadata/SEO only** and is not repeated as another
+audience paragraph; it still supplies the document and social descriptions.
 
 Avatar paths are relative to `public/`, **not** prefixed with `public/`:
 `assets/avatar.webp` refers to `public/assets/avatar.webp`. HTTP(S) image URLs
@@ -146,6 +149,55 @@ Use base-relative image paths like `assets/image.webp`, rather than
 hardcoding a repository URL. Keep one idea on a slide; split long material
 instead of reducing the type size. Separator lines inside code examples must
 be indented so they are not interpreted as actual slide boundaries.
+
+### Small native layout presets
+
+The baseline slide frame stays the same. Opt into three compositions with
+Reveal's native slide classes; all authoring stays in `slides.md`.
+
+````markdown
+<!-- .slide: id="my-claim" class="layout-statement" -->
+## One strong <em class="accent">claim.</em>
+
+One short supporting thought.
+<!-- .element: class="layout-support" -->
+````
+
+For `layout-split`, keep the heading in Markdown, then explicitly group the
+copy and visual. Do not use nested `<section>` elements for columns: Reveal
+interprets them as vertical slides.
+
+```markdown
+<!-- .slide: id="my-evidence" class="layout-split" -->
+## A claim and its evidence
+
+<div class="layout-copy">
+  <h3>The claim</h3>
+  <p>A concise explanation.</p>
+</div>
+
+<figure class="layout-visual">
+  <img src="assets/evidence.webp" alt="Describe the evidence">
+  <figcaption class="layout-caption">A useful caption.</figcaption>
+</figure>
+```
+
+For `layout-comparison`, use a shared Markdown heading followed by
+`<div class="comparison-columns">` containing two
+`<div class="comparison-panel">` groups, each with a heading and comparable
+content. Copy the complete example from `slides.md`.
+
+Columns stack in DOM order for reading/compact modes; typography remains
+legible rather than scaling the columns down. Code stays left-aligned and
+copyable, even in a centered statement. Use `accent` selectively, not on every
+paragraph. `layout-caption` is secondary supporting copy, not hidden content.
+
+Keep large rich diagrams full-width when possible. The graph fallback now
+responds to its **container width**, including a narrow split column on a wide
+screen. All same-data nodes/relationships remain present. In desktop split
+presentation, a tall fallback has one labeled, keyboard-scrollable region;
+reading, compact, and print expand it fully. Focus that region to scroll it
+without advancing the deck.
 
 ### Alignment, diagrams, icons, and motion
 

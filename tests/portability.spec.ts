@@ -37,7 +37,7 @@ for (const base of ['/', '/another-name/']) {
       }));
       await page.route(/\/assets\/slides-[^/]+\.md$/, (route) => route.fulfill({
         contentType: 'text/markdown',
-        body: `${exampleMarkdown}\n---\n## Python on Pages\n\n\`\`\`py\nprint("portable")\n\`\`\`\n\n---\n## Rust on Pages\n\n\`\`\`rs\nfn main() { println!("portable"); }\n\`\`\`\n\n---\n## SQL on Pages\n\n\`\`\`sql\nSELECT title FROM talks;\n\`\`\`\n\n---\n## Rich model on Pages\n<div data-diagram="architecture"></div>\n`,
+        body: `${exampleMarkdown}\n---\n## Python on Pages\n\n\`\`\`py\nprint("portable")\n\`\`\`\n\n---\n## Rust on Pages\n\n\`\`\`rs\nfn main() { println!("portable"); }\n\`\`\`\n\n---\n## SQL on Pages\n\n\`\`\`sql\nSELECT title FROM talks;\n\`\`\`\n\n---\n## Rich model on Pages\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="portable-preset" class="layout-split" -->\n## Portable evidence\n<div class="layout-copy"><p>Content stays in Markdown.</p></div>\n<figure class="layout-visual"><img src="brand/aspire-icon-256.svg" alt="Official Aspire mark"><figcaption class="layout-caption">A visible caption.</figcaption></figure>\n`,
       }));
       const response = await page.goto(`${origin}${base}?mode=present`);
       const html = await response!.text();
@@ -60,6 +60,9 @@ for (const base of ['/', '/another-name/']) {
       }
       await expect(page.locator('svg.architecture-svg')).toHaveCount(1);
       await expect(page.locator('svg.architecture-svg .graph-edge')).toHaveCount(4);
+      await expect(page.locator('#intro .lede')).toHaveCount(0);
+      await expect(page.locator('#portable-preset')).toHaveClass(/layout-split/);
+      await expect(page.locator('#portable-preset img')).toHaveAttribute('src', `${origin}${base}brand/aspire-icon-256.svg`);
       const count = await page.locator('#slide-list a').count();
       await expect(page.locator('#slide-position')).toHaveText(`1 / ${count}`);
       const first = await page.locator('#slide-list a').nth(1).getAttribute('data-slide');
