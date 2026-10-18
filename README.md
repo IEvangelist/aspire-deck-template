@@ -221,12 +221,47 @@ use native fragments; paired slides use `data-auto-animate` and matching
 `data-id` values. Motion is presenter-driven, with complete static equivalents
 for reading, reduced motion, and print.
 
-The same small MIT Octicons family is used in controls, links, code captions,
-and diagrams. For decorative icons in advanced HTML, use
-`<span data-icon="code"></span>` alongside a visible label. Names:
-`arrowLeft`, `arrowRight`, `book`, `cloud`, `code`, `copy`, `database`, `file`,
-`graph`, `github`, `link`, `menu`, `moon`, `screen`, `sun`, `terminal`, `close`.
-Icons never replace essential labels or alter the Aspire marks.
+### The complete icon catalog
+
+The full bundled [Primer Octicons catalog](https://primer.style/octicons/)
+is available in slides and diagrams: **399 names / 773 size variants** in the
+locked package. No TypeScript imports or allowlist edits are needed.
+
+```html
+<span data-icon="rocket"></span> Launch
+<span data-icon="server"></span> API
+<span data-icon="copilot"></span> Copilot
+<span data-icon="git-branch"></span> A branch
+<span data-icon="feed-heart-16"></span> A size-specific icon
+```
+
+Use the catalog's kebab-case name. A name selects its 24px artwork when
+available, otherwise 16px (or its smallest variant). Append an exact size to
+select a particular drawing, such as `copilot-48` or `arrow-right-16`.
+Rendered icons inherit the current theme color and preserve their SVG viewBox;
+the selected size describes the source artwork, not a fixed CSS display size.
+
+The same names work in `diagrams.json`, for example `"icon": "server"` or
+`"icon": "workflow-24"`. Invalid names and failed asset loads produce a visible
+error instead of an empty icon.
+
+Existing shortcuts keep their original drawings: `arrowLeft`, `arrowRight`,
+`github`, `menu`, `screen`, `close`, `file`, and `link` still work.
+In particular, `file` means `file-code-24` and `link` means `link-external-24`
+for compatibility; use `file-24` or `link-24` for those canonical library icons.
+Existing names like `book`, `cloud`, `code`, and `database` also stay unchanged.
+
+All variants ship as **local, on-demand modules**, not an upfront SVG bundle
+or a CDN dependency. Only the shell's small icon set and the icons actually
+referenced in your Markdown or mounted diagrams are downloaded. Unused diagram
+definitions do not load their icon artwork.
+
+When upgrading `@primer/octicons`, run `npm run icons:update` to regenerate
+`src/icon-catalog.ts` from the installed package; tests check that the catalog
+and every variant match. Do not maintain a second hand-written icon list.
+Icons are decorative support for visible labels, not a replacement for them.
+Keep the MIT notice and applicable brand/trademark rights; icons do not alter
+the official Aspire artwork or imply endorsement.
 
 ### Rich SVG graphs
 

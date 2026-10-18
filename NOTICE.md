@@ -27,7 +27,7 @@ are unchanged.
   [MIT](public/licenses/revealjs-MIT.txt).
 - Highlight.js core and selected language definitions:
   [BSD-3-Clause](public/licenses/highlightjs-BSD.txt).
-- Individually imported Primer Octicons:
+- The complete on-demand Primer Octicons catalog:
   [MIT](public/licenses/octicons-MIT.txt), copyright 2026 GitHub Inc.
   GitHub marks remain subject to trademark rights; no endorsement is implied.
 

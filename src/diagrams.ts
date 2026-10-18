@@ -1,4 +1,4 @@
-import { iconElement } from './icons';
+import { iconElement, loadIcons } from './icons';
 import type { Diagram, Diagrams } from './diagram-config';
 import { diagramConnections } from './diagram-routes';
 
@@ -33,12 +33,13 @@ function checkText(diagram: Diagram, key: string) {
 const fragment = (stage: number) => stage > 0 ? `class="graph-stage fragment" data-fragment-index="${stage - 1}"` : 'class="graph-stage"';
 let instances = 0;
 
-export function renderDiagrams(definitions: Diagrams, scope: ParentNode = document) {
+export async function renderDiagrams(definitions: Diagrams, scope: ParentNode = document) {
   for (const mount of scope.querySelectorAll<HTMLElement>('[data-diagram]')) {
     const key = mount.dataset.diagram ?? '';
     if (!Object.hasOwn(definitions, key)) throw new Error(`slides.md: diagram "${key}" is not defined in diagrams.json.`);
     const diagram = definitions[key];
     checkText(diagram, key);
+    await loadIcons(diagram.nodes.map((node) => node.icon));
     const prefix = `diagram-${++instances}-${key}`;
     const connections = diagramConnections(diagram);
     const stages = [...new Set([0, ...diagram.nodes.map((node) => node.stage), ...connections.map((edge) => edge.stage)])].sort((a, b) => a - b);

@@ -151,8 +151,24 @@ animation controller. No autoplay or animation library is needed.
 
 Reading, reduced-motion, and print must show complete information immediately.
 Icons are decorative support for real labels, not a replacement for them.
-See the README for the small supported icon-name list. Do not modify the
-official Aspire SVG fills or proportions.
+The complete bundled Primer Octicons catalog is available without TypeScript
+edits: use `<span data-icon="rocket"></span>` in Markdown HTML or
+`"icon": "server"` in a diagram node. Browse names at
+https://primer.style/octicons/; use kebab-case slugs such as `git-branch`,
+`copilot`, `container`, `cache`, or `workflow`.
+
+Names select 24px artwork when available, then 16px or the smallest available
+variant. Exact variants such as `copilot-48` and `feed-heart-16` also work.
+The SVG retains its proportions and theme color. Old shortcut names remain
+valid; `file`/`link` retain their old file-code/external-link drawings, while
+`file-24`/`link-24` select the corresponding canonical library icons.
+
+Do not import the full icon bundle, add a CDN, or copy icon files manually.
+The local loader downloads only used artwork; invalid names or failed loads
+must remain actionable errors, not blank success. After a package upgrade,
+run `npm run icons:update` and the icon tests to refresh the generated catalog.
+Keep the MIT/trademark notices and do not modify the official Aspire SVG fills
+or proportions.
 
 ## Code and notes
 

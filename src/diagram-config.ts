@@ -75,7 +75,7 @@ export function parseDiagrams(value: unknown): Diagrams {
       const name = id(node.id, `${field}.id`);
       if (nodeIds.has(name)) fail(`${field}.id`, `duplicates node "${name}".`);
       nodeIds.add(name);
-      if (!isIconName(node.icon)) fail(`${field}.icon`, 'is not a supported icon.');
+      if (!isIconName(node.icon)) fail(`${field}.icon`, 'must be an Octicons name or exact size variant (for example server or server-24).');
       if (!Array.isArray(node.detail)) fail(`${field}.detail`, 'must be an array of lines; [] is allowed.');
       const detail = node.detail.map((line, index) => text(line, `${field}.detail[${index}]`));
       const x = number(node.x, `${field}.x`);

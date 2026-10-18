@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { build, preview, type PreviewServer } from 'vite';
 import { parseDeckJson } from '../src/config';
@@ -24,6 +25,8 @@ for (const base of ['/', '/another-name/']) {
       if (!address || typeof address === 'string') throw new Error('Preview did not bind an isolated port.');
       const origin = `http://127.0.0.1:${address.port}`;
       const failures: string[] = [];
+      const requests: string[] = [];
+      page.on('request', (request) => requests.push(request.url()));
       page.on('pageerror', (error) => failures.push(error.message));
       page.on('requestfailed', (request) => failures.push(request.url()));
       page.on('response', (response) => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
@@ -37,7 +40,7 @@ for (const base of ['/', '/another-name/']) {
       }));
       await page.route(/\/assets\/slides-[^/]+\.md$/, (route) => route.fulfill({
         contentType: 'text/markdown',
-        body: `${exampleMarkdown}\n---\n## Python on Pages\n\n\`\`\`py\nprint("portable")\n\`\`\`\n\n---\n## Rust on Pages\n\n\`\`\`rs\nfn main() { println!("portable"); }\n\`\`\`\n\n---\n## SQL on Pages\n\n\`\`\`sql\nSELECT title FROM talks;\n\`\`\`\n\n---\n## Rich model on Pages\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="portable-preset" class="layout-split" -->\n## Portable evidence\n<div class="layout-copy"><p>Content stays in Markdown.</p></div>\n<figure class="layout-visual"><img src="brand/aspire-icon-256.svg" alt="Official Aspire mark"><figcaption class="layout-caption">A visible caption.</figcaption></figure>\n`,
+        body: `${exampleMarkdown}\n---\n## Python on Pages\n\n\`\`\`py\nprint("portable")\n\`\`\`\n\n---\n## Rust on Pages\n\n\`\`\`rs\nfn main() { println!("portable"); }\n\`\`\`\n\n---\n## SQL on Pages\n\n\`\`\`sql\nSELECT title FROM talks;\n\`\`\`\n\n---\n## Rich model on Pages\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="portable-preset" class="layout-split" -->\n## Portable evidence\n<div class="layout-copy"><p>Content stays in Markdown.</p><p><span data-icon="rocket"></span> Launch <span data-icon="copilot-48"></span> Copilot</p></div>\n<figure class="layout-visual"><img src="brand/aspire-icon-256.svg" alt="Official Aspire mark"><figcaption class="layout-caption">A visible caption.</figcaption></figure>\n`,
       }));
       const response = await page.goto(`${origin}${base}?mode=present`);
       const html = await response!.text();
@@ -63,6 +66,12 @@ for (const base of ['/', '/another-name/']) {
       await expect(page.locator('#intro .lede')).toHaveCount(0);
       await expect(page.locator('#portable-preset')).toHaveClass(/layout-split/);
       await expect(page.locator('#portable-preset img')).toHaveAttribute('src', `${origin}${base}brand/aspire-icon-256.svg`);
+      for (const variant of ['rocket-24', 'copilot-48']) {
+        await expect(page.locator(`#portable-preset [data-icon-variant="${variant}"] svg`)).toHaveCount(1);
+        expect(requests.some((url) => url.startsWith(`${origin}${base}assets/${variant}-`) && url.endsWith('.js'))).toBe(true);
+      }
+      expect(readdirSync(join(outDir, 'assets')).some((name) => name.startsWith('beaker-24-') && name.endsWith('.js'))).toBe(true);
+      expect(requests.some((url) => url.includes('/beaker-24-'))).toBe(false);
       const count = await page.locator('#slide-list a').count();
       await expect(page.locator('#slide-position')).toHaveText(`1 / ${count}`);
       const first = await page.locator('#slide-list a').nth(1).getAttribute('data-slide');
