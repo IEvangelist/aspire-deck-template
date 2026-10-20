@@ -228,6 +228,21 @@ use native fragments; paired slides use `data-auto-animate` and matching
 `data-id` values. Motion is presenter-driven, with complete static equivalents
 for reading, reduced motion, and print.
 
+Diagram reveals follow **box, arrow, next box**, not all boxes followed by
+arrows. In native HTML, leave the first box visible, put the first connector
+at `data-fragment-index="0"`, the next box at `"1"`, the next connector at
+`"2"`, and so on. Keep each complete box's icon/title/detail inside its fragment.
+Copy the complete `model-to-observation` example from `slides.md` so positions
+remain fixed while hidden parts reserve their space.
+
+The auto-animate pair carries forward the completed model, moves it over
+350ms, then reveals the new arrow and cache on separate advances. Matching
+`data-id` values preserve context; `data-auto-animate-unmatched="false"` leaves
+new parts to their explicit fragments instead of fading them in prematurely.
+Rapid advance completes the previous reveal rather than overlapping steps;
+Back removes the last exposed part. Static prose slides do not animate every
+paragraph.
+
 ### The complete icon catalog
 
 The full bundled [Primer Octicons catalog](https://primer.style/octicons/)
@@ -295,14 +310,25 @@ add `via: [{"x": 100, "y": 400}, ...]`. A label may have `labelAt: {"x": 100,
 "y": 420}`; otherwise it is placed between attachments. Waypoints and labels
 must fit the bounds. Keep routes clear of nodes and captions.
 
-Stage 0 is initially visible; positive stages use native fragments. A connection's
-whole route, arrowhead, and label wait for
-`max(edge.stage, source.stage, target.stage)`. Back hides them again, and there
-are no unfragmented guide paths. Read/print/reduced motion show the complete graph.
+Stage 0 is initially visible; positive stages use native fragments. Give ordered
+parts separate stages: **source box 0, arrow 1, destination box 2**, then arrow 3
+and box 4. A connection waits for `max(edge.stage, source.stage)`, **not** its
+destination: the arrow intentionally points toward the next box before that box
+appears. Return routes can point back to an already visible box. All-zero
+definitions remain static.
+
+Solid arrow routes draw over 450ms; patterned routes fade in without losing
+their dash pattern. The tip and caption finish together.
+The next advance settles that arrow before the next box appears. Back hides the
+last part without leaving guide paths or delayed arrowheads. Read/print/reduced
+motion show the complete graph.
 Each mounted instance has unique SVG accessibility and marker IDs.
 
-Narrow/compact layouts derive readable node and connection lists from **the same
-definition**, retaining every relationship and caption. No tiny scaled labels,
+Narrow/compact layouts derive one ordered node-and-arrow flow from **the same
+definition**, retaining every relationship and caption in reveal order.
+Presentation mode keeps the current step in view, including inside a split
+column's scrolling region. Reading mode remains naturally scrollable.
+No tiny scaled labels,
 Mermaid dependency, graph-layout platform, or custom animation controller is
 needed. Empty `{}` is valid when no rich graphs are used; a referenced missing
 name or invalid definition fails with the file/diagram/node/edge identified.
@@ -368,6 +394,10 @@ Forced presentation on a narrow screen reflows one slide at readable sizes
 instead of shrinking a desktop canvas; long content can scroll inside the
 presentation viewport. Desktop/projector typography keeps its original scale.
 Reading, reduced-motion, and print show every fragment immediately.
+Native fragment links such as `#/rich-architecture/2` restore that exact reveal
+state, including after reload or browser Back. A plain named slide link starts
+at its first state. The trailing number is Reveal's zero-based fragment index;
+stage 0 is the initially visible content, not fragment 0.
 The print link opens Reveal's `?print-pdf` layout with all slides, not only
 the currently visible one. Code expands for print without hiding its contents.
 

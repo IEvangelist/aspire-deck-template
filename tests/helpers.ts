@@ -83,6 +83,17 @@ export async function paintedFonts(page: Page, selector: string) {
   }
 }
 
+export async function settleMotion(page: Page) {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    const animations = document.getElementById('presentation')!.getAnimations({ subtree: true })
+      .filter((animation) => animation.playState === 'running' && Number.isFinite(animation.effect?.getComputedTiming().endTime));
+    await Promise.all(animations.map((animation) => animation.finished.catch((error: unknown) => {
+      if (!(error instanceof DOMException) || error.name !== 'AbortError') throw error;
+    })));
+  });
+}
+
 export async function jump(page: Page, id: string) {
   await page.locator('#menu-toggle').click();
   await page.locator(`#slide-list a[data-slide="${id}"]`).click();

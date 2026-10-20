@@ -211,10 +211,69 @@ function targetFor(hash: string): HTMLElement | undefined {
     : slides.find((slide) => slide.id === name);
 }
 
-function goTo(slide: HTMLElement) {
-  current = slide;
+function fragmentFor(hash: string): number {
+  const parts = decodeURIComponent(hash.slice(2)).split('/');
+  const value = parts[/^\d+$/.test(parts[0]) ? 2 : 1];
+  if (value === undefined) return -1;
+  if (!/^-?\d+$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) < -1) {
+    throw new RangeError(`Invalid fragment index in "${hash}". Use -1 for the first state or a zero-based fragment number.`);
+  }
+  return Number(value);
+}
+
+function followHash(event: HashChangeEvent) {
+  if (document.documentElement.dataset.deckReady !== 'true' || !location.hash.startsWith('#/')) return;
+  event.stopImmediatePropagation();
+  const slide = targetFor(location.hash);
+  if (slide) {
+    let fragment: number;
+    try {
+      fragment = fragmentFor(location.hash);
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      console.error('Presentation link could not be followed.', error);
+      announce(error.message);
+      return;
+    }
+    if (!reading && deck.getCurrentSlide() === slide && (deck.getIndices().f ?? -1) === fragment) return;
+    goTo(slide, fragment);
+  } else {
+    announce(`Slide link "${location.hash}" was not found. Open the menu to choose a slide.`);
+  }
+}
+
+function finishReveals(slide: HTMLElement, selector = '.fragment') {
+  for (const fragment of slide.querySelectorAll(selector)) {
+    for (const animation of fragment.getAnimations({ subtree: true })) {
+      if (animation.playState === 'running' && Number.isFinite(animation.effect?.getComputedTiming().endTime)) animation.finish();
+    }
+  }
+}
+
+function showCurrentStep() {
+  if (staticMode()) return;
+  const candidates = [...current.querySelectorAll('.current-fragment')].filter((node) => {
+    const bounds = node.getBoundingClientRect();
+    return bounds.width > 0 && bounds.height > 0 && getComputedStyle(node).visibility !== 'hidden';
+  });
+  const target = candidates.at(-1) ?? current.querySelector('.diagram-node:not(.fragment), .graph-node-list [data-mobile-node]:not(.fragment)');
+  if (!target) return;
+  const region = target.closest('.architecture-mobile');
+  const scroller = region instanceof HTMLElement && getComputedStyle(region).overflowY === 'auto' ? region : viewport;
+  if (scroller === viewport && !naturalLayout()) return;
+  const bounds = target.getBoundingClientRect();
+  const frame = scroller.getBoundingClientRect();
+  if (bounds.top < frame.top + 16 || bounds.bottom > frame.bottom - 16) {
+    scroller.scrollTo({ top: scroller.scrollTop + bounds.top - frame.top - 24, behavior: 'instant' });
+  }
+}
+
+function goTo(slide: HTMLElement, fragment = -1) {
+  finishReveals(current);
   const indices = deck.getIndices(slide);
-  deck.slide(indices.h, indices.v, -1);
+  deck.slide(indices.h, indices.v, staticMode() ? -1 : fragment);
+  current = slide;
+  finishReveals(slide);
   if (reading) {
     viewport.scrollTo({ top: viewport.scrollTop + slide.getBoundingClientRect().top - viewport.getBoundingClientRect().top, behavior: 'instant' });
     const url = new URL(location.href);
@@ -222,6 +281,7 @@ function goTo(slide: HTMLElement) {
     if (location.hash !== url.hash) history.pushState(null, '', url);
   }
   synchronize();
+  showCurrentStep();
 }
 
 function closeMenu() {
@@ -289,7 +349,14 @@ function prepareSlides() {
   }
   element('start-presentation', HTMLAnchorElement).href = `#/${slides[1].id}`;
   for (const link of root.querySelectorAll<HTMLAnchorElement>('a[href^="#/"]')) {
-    if (!targetFor(link.getAttribute('href')!)) throw new Error(`slides.md: slide link "${link.getAttribute('href')}" has no target.`);
+    const href = link.getAttribute('href')!;
+    if (!targetFor(href)) throw new Error(`slides.md: slide link "${href}" has no target.`);
+    try {
+      fragmentFor(href);
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      throw new Error(`slides.md: ${error.message}`, { cause: error });
+    }
   }
   const list = element('slide-list', HTMLOListElement);
   list.replaceChildren(...slides.map((slide, index) => {
@@ -326,7 +393,7 @@ function wireControls() {
     if (!link || menu.contains(link)) return;
     event.preventDefault();
     const slide = targetFor(link.getAttribute('href')!);
-    if (slide) { goTo(slide); focusPresentation(); }
+    if (slide) { goTo(slide, fragmentFor(link.getAttribute('href')!)); focusPresentation(); }
     else announce(`Slide link "${link.getAttribute('href')}" was not found. Open the menu to choose a slide.`);
   });
   previous.addEventListener('click', () => {
@@ -369,13 +436,6 @@ function wireControls() {
       }
     });
   });
-  window.addEventListener('hashchange', (event) => {
-    if (!reading || !location.hash.startsWith('#/')) return;
-    event.stopImmediatePropagation();
-    const slide = targetFor(location.hash);
-    if (slide) goTo(slide);
-    else announce(`Slide link "${location.hash}" was not found. Open the menu to choose a slide.`);
-  }, true);
   window.addEventListener('keydown', (event) => {
     if (!reading || menu.open || event.altKey || event.ctrlKey || event.metaKey ||
         (event.target instanceof Element && event.target.closest('a, button, input, textarea, select, pre, [role="region"][tabindex], [contenteditable]'))) return;
@@ -401,11 +461,21 @@ function wireControls() {
     synchronize();
   });
   deck.on('slidechanged', () => {
+    finishReveals(current);
     if (!reading) viewport.scrollTop = 0;
     synchronize();
+    showCurrentStep();
   });
-  deck.on('fragmentshown', synchronize);
-  deck.on('fragmenthidden', synchronize);
+  deck.on('fragmentshown', () => {
+    synchronize();
+    finishReveals(current, '.fragment.visible:not(.current-fragment)');
+    showCurrentStep();
+  });
+  deck.on('fragmenthidden', () => {
+    synchronize();
+    finishReveals(current, '.fragment:not(.visible)');
+    showCurrentStep();
+  });
   deck.on('resize', synchronize);
   deck.addKeyBinding({ keyCode: 84, key: 'T', description: 'Switch theme' }, toggleTheme);
   deck.addKeyBinding({ keyCode: 82, key: 'R', description: 'Switch reading mode' }, toggleReading);
@@ -446,6 +516,8 @@ async function start() {
     disableLayout: naturalLayout(), overview: !reading, scrollActivationWidth: 0,
     fragments: !staticMode(), pdfSeparateFragments: false,
     autoAnimate: !staticMode(),
+    autoAnimateDuration: 0.35,
+    autoAnimateEasing: 'cubic-bezier(0.16, 1, 0.3, 1)',
     markdown: { headerIds: false, mangle: false },
     keyboardCondition: () => !menu.open && !(document.activeElement instanceof Element &&
       document.activeElement.closest('a, button, input, textarea, select, pre, [role="region"][tabindex], [contenteditable]')),
@@ -463,7 +535,7 @@ async function start() {
   wireControls();
   updatePrintLink();
   const target = targetFor(initialUrl.hash);
-  if (target) goTo(target);
+  if (target) goTo(target, fragmentFor(initialUrl.hash));
   else {
     if (initialUrl.hash.startsWith('#/')) announce(`Slide link "${initialUrl.hash}" was not found. Open the menu to choose a slide.`);
     goTo(slides[0]);
@@ -472,4 +544,6 @@ async function start() {
   document.documentElement.dataset.deckReady = 'true';
 }
 
+// Run before Reveal's URL listener so plain links reset cached fragments.
+window.addEventListener('hashchange', followHash, true);
 void start().catch(showFailure);

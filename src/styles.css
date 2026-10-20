@@ -241,17 +241,28 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .architecture-svg { display: none; }
   .architecture-mobile { display: block; }
 }
-.reveal .graph-node-list, .reveal .graph-relationship-list { list-style: none; padding: 0; margin: 24px 0; }
+.reveal .graph-node-list { list-style: none; padding: 0; margin: 24px 0; }
 .graph-node-list li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 16px; }
 .graph-node-list strong { font-size: 22px; }
 .graph-node-list p { margin: 6px 0 0; font-size: 20px; }
-.graph-relationship-list li { display: flex; flex-direction: column; gap: 4px; font-size: 20px; }
-.graph-relationship-list span { color: var(--secondary); }
+.graph-node-list [data-mobile-edge] strong { color: var(--secondary); font-size: 20px; }
+.graph-node-list [data-mobile-edge] p { color: var(--secondary); }
+.graph-edge-icon .octicon { transform: rotate(90deg); color: var(--accent); }
+.reveal .diagram-node.fragment, .reveal .diagram-connector.fragment, .reveal .graph-stage.fragment { transition: opacity 160ms ease-out; }
+.reveal .diagram-connector.fragment { clip-path: inset(0 100% 0 0); transition: opacity 160ms ease-out, clip-path 300ms cubic-bezier(0.16, 1, 0.3, 1); }
+.reveal .diagram-connector.fragment.visible { clip-path: inset(0); }
+.reveal .diagram-node.fragment:not(.visible), .reveal .diagram-connector.fragment:not(.visible), .reveal .graph-stage.fragment:not(.visible) { transition: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .reveal .graph-stage.fragment:not(.visible) .edge-path:not([stroke-dasharray]) { stroke-dasharray: 1; stroke-dashoffset: 1; }
-  .reveal .graph-stage.fragment.visible .edge-path { stroke-dashoffset: 0; transition: stroke-dashoffset 550ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .reveal .graph-stage.fragment .graph-edge:not(.telemetry):not(.context) .edge-path { stroke-dasharray: 1; }
+  .reveal .graph-stage.fragment:not(.visible) .edge-path { stroke-dashoffset: 1; }
+  .reveal .graph-stage.fragment.visible .edge-path { stroke-dashoffset: 0; transition: stroke-dashoffset 450ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .reveal .graph-stage.fragment .graph-edge.telemetry .edge-path, .reveal .graph-stage.fragment .graph-edge.context .edge-path { stroke-dashoffset: 0; transition: none; }
+  .reveal .graph-stage.fragment.visible .arrow-head, .reveal .graph-stage.fragment.visible .edge-label { animation: graph-arrow-finish 450ms ease-out both; }
 }
+@keyframes graph-arrow-finish { 0%, 80% { opacity: 0; } 100% { opacity: 1; } }
 :root[data-static='true'] .edge-path { stroke-dashoffset: 0 !important; }
+:root[data-static='true'] .arrow-head, :root[data-static='true'] .edge-label { animation: none !important; opacity: 1 !important; }
+:root[data-static='true'] .reveal .diagram-connector.fragment { clip-path: none; transform: translateY(-50%) !important; }
 :root[data-compact='true'] .architecture-svg { display: none; }
 :root[data-compact='true'] .architecture-mobile { display: block; }
 .reveal blockquote { margin: 36px 0; padding: 0; width: 100%; background: none; box-shadow: none; font-size: 40px; line-height: 1.5; }
@@ -296,6 +307,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal .subtitle { font-size: 30px; }
   .reveal .diagram-flow, .reveal .diagram-flow.two-nodes { grid-template-columns: 1fr; gap: 40px; }
   .diagram-connector { top: -32px; left: 50%; transform: translateX(-50%) rotate(90deg); }
+  :root[data-static='true'] .reveal .diagram-connector.fragment { transform: translateX(-50%) rotate(90deg) !important; }
   .architecture-svg { display: none; }
   .architecture-mobile { display: block; }
 }

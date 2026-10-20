@@ -127,13 +127,22 @@ Keep boxes apart and routes/captions clear; use bounds no larger than 1440 x 640
 Do not reduce the 22px titles/20px details or their padding to fit text. Shorten
 titles, add detail lines, enlarge boxes within the bounds, or split the model.
 
-Reveal nodes and complete edge groups with native fragments. Effective edge
-stage is the maximum of its own stage and BOTH endpoint stages. Do not render
-unfragmented ghost paths or pre-reveal an arrow/caption. Back must hide the
-route again. Read/print/reduced motion must show the complete graph.
+Reveal **source box, arrow, destination box** with native fragments. Use separate
+stages such as source 0, edge 1, target 2, edge 3, target 4. Effective edge stage
+is `max(edge.stage, source.stage)`; do not delay it until the destination is
+visible. The arrow is supposed to introduce the next box. Return edges can
+connect already-visible nodes; an all-zero definition is a static graph.
+Keep the route, arrowhead, and caption inside the same staged group. Do not
+render unfragmented guide paths or expose future boxes early. The route draws
+first (patterned routes preserve their dash pattern), then its tip/caption finish;
+rapid advance must settle the previous
+reveal before the next part appears. Back removes the last part cleanly.
+Read/print/reduced motion must show the complete graph immediately.
 
-Use the derived narrow HTML fallback from the same definitions, with every
-node, relationship, and caption retained. Never make SVG labels tiny or keep a
+Use the derived narrow HTML flow from the same definitions, with every
+node, relationship, and caption retained in stage order. Presentation advances
+keep the current step visible in the actual viewport/scrolling region.
+Never make SVG labels tiny or keep a
 separate, hand-maintained mobile graph. Repeat a named diagram safely: marker
 and accessibility IDs are namespaced per instance. Empty definitions are
 valid; missing names/endpoints, bad stages/geometry/icons, duplicate nodes,
@@ -150,15 +159,20 @@ ordinary HTML with `diagram-node` containers and decorative Octicons:
 </div>
 ```
 
-Keep labels visible before their connections. Reveal connectors with native
-fragment classes/indexes; never show a path to an invisible endpoint. Diagram
-layouts must stack with readable labels on narrow screens.
+Keep the first box visible. Give its connector native fragment index 0, the
+next complete box index 1, the next connector index 2, then the next box index 3.
+Do not reveal every label/box upfront. The destination is deliberately hidden
+until the advance after its arrow. Diagram layouts must stack with readable
+labels on narrow screens, preserving arrow direction in static modes.
 
 Use `<!-- .element: class="fragment" -->` on a list item or element for a
 presenter-stepped reveal. For native auto-animate, use two consecutive slides
 with `data-auto-animate="true"` and the same `data-auto-animate-id`; give matching
-elements the same `data-id`. Edit the starter pair rather than adding an
-animation controller. No autoplay or animation library is needed.
+elements the same `data-id`. Carry the completed context into the second frame;
+stage its new arrow and box separately and use
+`data-auto-animate-unmatched="false"` to prevent automatic unmatched reveals.
+Edit the starter pair rather than adding an animation controller. No autoplay
+or animation library is needed.
 
 Reading, reduced-motion, and print must show complete information immediately.
 Icons are decorative support for real labels, not a replacement for them.
@@ -215,6 +229,11 @@ desktop/projector light/dark and a narrow viewport, reading mode, named/vertical
 links and counts, Next/Back, notes, copy, reduced motion, and full-content print.
 Check that media/fonts/Markdown/language modules still load under both `/` and
 a renamed project Pages path.
+Walk every slide forward and backward through every reveal, including the
+box/arrow boundaries and auto-animate pair. Check actual painted visibility
+and in-progress/settled arrow drawing, not only fragment classes. Test rapid
+input, `#/slide-id/fragment-index` reload/history restoration, narrow scroll
+regions, and immediate complete static modes.
 Check the actual painted glyph fonts, not only `font-family` declarations or
 `document.fonts` entries: Chromium's `CSS.getPlatformFontsForNode` must report
 custom Poppins faces for visible headings/prose and Fira Code faces for visible

@@ -39,14 +39,15 @@ export async function renderDiagrams(definitions: Diagrams, scope: ParentNode = 
     if (!Object.hasOwn(definitions, key)) throw new Error(`slides.md: diagram "${key}" is not defined in diagrams.json.`);
     const diagram = definitions[key];
     checkText(diagram, key);
-    await loadIcons(diagram.nodes.map((node) => node.icon));
+    await loadIcons(['arrowRight', ...diagram.nodes.map((node) => node.icon)]);
     const prefix = `diagram-${++instances}-${key}`;
     const connections = diagramConnections(diagram);
     const stages = [...new Set([0, ...diagram.nodes.map((node) => node.stage), ...connections.map((edge) => edge.stage)])].sort((a, b) => a - b);
     const markup = stages.map((stage) => {
       const edges = connections.filter((edge) => edge.stage === stage).map((edge) => `
         <g class="graph-edge ${edge.kind ?? ''}" data-edge="${edge.id}" data-from="${edge.from}" data-to="${edge.to}" data-effective-stage="${stage}">
-          <path class="edge-path" d="${edge.path}" pathLength="1" marker-end="url(#${prefix}-arrow)" />
+          <defs><marker id="${prefix}-${edge.id}-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L8 5 L1 9" class="arrow-head" /></marker></defs>
+          <path class="edge-path" d="${edge.path}" pathLength="1" marker-end="url(#${prefix}-${edge.id}-arrow)" />
           ${edge.label ? `<text class="edge-label" x="${edge.labelAt.x}" y="${edge.labelAt.y}">${escape(edge.label)}</text>` : ''}
         </g>`).join('');
       const nodes = diagram.nodes.filter((node) => node.stage === stage).map((node) => `
@@ -58,22 +59,24 @@ export async function renderDiagrams(definitions: Diagrams, scope: ParentNode = 
         </g>`).join('');
       return `<g ${fragment(stage)} data-stage="${stage}">${edges}${nodes}</g>`;
     }).join('');
+    const mobile = stages.map((stage) => {
+      const nodes = diagram.nodes.filter((node) => node.stage === stage).map((node) => `<li ${fragment(stage)} data-mobile-node="${node.id}" data-stage="${stage}">
+        ${iconElement(node.icon).outerHTML}<div><strong>${escape(node.title)}</strong><p>${escape(node.detail.join('. '))}</p></div>
+      </li>`).join('');
+      const edges = connections.filter((edge) => edge.stage === stage).map((edge) => `<li ${fragment(stage)} data-mobile-edge="${edge.id}" data-stage="${stage}" data-effective-stage="${stage}">
+        <span class="graph-edge-icon">${iconElement('arrowRight').outerHTML}</span><div><strong>${escape(edge.source.title)} to ${escape(edge.target.title)}</strong>${edge.label ? `<p>${escape(edge.label)}</p>` : ''}</div>
+      </li>`).join('');
+      return `${nodes}${edges}`;
+    }).join('');
     mount.innerHTML = `
       <svg class="architecture-svg" data-graph="${key}" viewBox="0 0 ${diagram.width} ${diagram.height}" role="img" aria-labelledby="${prefix}-title ${prefix}-description" xmlns="http://www.w3.org/2000/svg">
         <title id="${prefix}-title">${escape(diagram.title)}</title>
         <desc id="${prefix}-description">${escape(diagram.description)}</desc>
-        <defs><marker id="${prefix}-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L8 5 L1 9" class="arrow-head" /></marker></defs>
         ${markup}
       </svg>
       <div class="architecture-mobile" role="region" tabindex="0" aria-label="${escape(diagram.title)}: nodes and connections">
-        <ol class="graph-node-list">${diagram.nodes.map((node) => `<li ${fragment(node.stage)} data-mobile-node="${node.id}">
-          ${iconElement(node.icon).outerHTML}<div><strong>${escape(node.title)}</strong><p>${escape(node.detail.join('. '))}</p></div>
-        </li>`).join('')}</ol>
-        <h3>Connections</h3>
-        <ul class="graph-relationship-list">${connections.map((edge) => `<li ${fragment(edge.stage)} data-mobile-edge="${edge.id}" data-effective-stage="${edge.stage}">
-          <strong>${escape(edge.source.title)} to ${escape(edge.target.title)}</strong>${edge.label ? `<span>${escape(edge.label)}</span>` : ''}
-        </li>`).join('')}</ul>
+        <ol class="graph-node-list">${mobile}</ol>
       </div>`;
-    mount.dataset.steps = String(stages.at(-1));
+    mount.dataset.steps = String(stages.filter((stage) => stage > 0).length);
   }
 }

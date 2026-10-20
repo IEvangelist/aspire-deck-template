@@ -88,9 +88,10 @@ Edit `diagrams.json`. Advance the model, ports, connections, and return path.
 <!-- .element: class="source-line" -->
 
 Note:
-This is a generic authoring example, not a running app. Each full SVG route,
-arrowhead, and caption waits for both endpoint nodes. Back rewinds them.
-The narrow layout lists the same nodes and every relationship.
+This is a generic authoring example, not a running app. Reveal the AppHost,
+its arrow, then the API; continue through the cache, return, and frontend branch.
+Each arrow follows its source box and precedes its new destination box.
+The narrow layout follows the same sequence. Back rewinds one step at a time.
 
 ---
 
@@ -107,15 +108,15 @@ The narrow layout lists the same nodes and every relationship.
   </li>
   <li>
     <span class="diagram-connector fragment" data-fragment-index="0" data-icon="arrowRight"></span>
-    <div class="diagram-node">
+    <div class="diagram-node fragment" data-fragment-index="1">
       <span data-icon="cloud"></span>
       <h3>Resources</h3>
       <p>Connect the services your application needs.</p>
     </div>
   </li>
   <li>
-    <span class="diagram-connector fragment" data-fragment-index="1" data-icon="arrowRight"></span>
-    <div class="diagram-node">
+    <span class="diagram-connector fragment" data-fragment-index="2" data-icon="arrowRight"></span>
+    <div class="diagram-node fragment" data-fragment-index="3">
       <span data-icon="graph"></span>
       <h3>Observation</h3>
       <p>Understand what happens when they run.</p>
@@ -123,7 +124,7 @@ The narrow layout lists the same nodes and every relationship.
   </li>
 </ol>
 
-Advance to draw each connection. The labels come first.
+Advance: model, arrow, resource, arrow, observation.
 <!-- .element: class="source-line" -->
 
 Note:
@@ -133,21 +134,21 @@ Reading, reduced-motion, and print show the complete relationship immediately.
 
 ---
 
-<!-- .slide: id="animate-a-model" data-auto-animate="true" data-auto-animate-id="model-example" -->
+<!-- .slide: id="animate-a-model" data-auto-animate="true" data-auto-animate-id="model-example" data-auto-animate-unmatched="false" -->
 ## Change the model
 
 <ol class="diagram-flow two-nodes" aria-label="Frontend connected to API">
   <li><div class="diagram-node" data-id="example-web">
     <span data-icon="screen"></span><h3>Frontend</h3><p>The experience people use.</p>
   </div></li>
-  <li><span class="diagram-connector" data-icon="arrowRight"></span>
-    <div class="diagram-node" data-id="example-api">
+  <li><span class="diagram-connector fragment" data-fragment-index="0" data-id="example-web-api" data-icon="arrowRight"></span>
+    <div class="diagram-node fragment" data-fragment-index="1" data-id="example-api">
       <span data-icon="code"></span><h3>API</h3><p>The service behind it.</p>
     </div>
   </li>
 </ol>
 
-Next adds a resource using Reveal's native **auto-animate**.
+Build the connection first; then advance to extend the model.
 <!-- .element: class="source-line" -->
 
 Note:
@@ -156,26 +157,26 @@ There is no autoplay, custom animation controller, or animation library.
 
 ---
 
-<!-- .slide: id="animate-add-cache" data-auto-animate="true" data-auto-animate-id="model-example" -->
+<!-- .slide: id="animate-add-cache" data-auto-animate="true" data-auto-animate-id="model-example" data-auto-animate-unmatched="false" -->
 ## Change the model
 
 <ol class="diagram-flow" aria-label="Frontend connected to API connected to cache">
   <li><div class="diagram-node" data-id="example-web">
     <span data-icon="screen"></span><h3>Frontend</h3><p>The experience people use.</p>
   </div></li>
-  <li><span class="diagram-connector" data-icon="arrowRight"></span>
+  <li><span class="diagram-connector" data-id="example-web-api" data-icon="arrowRight"></span>
     <div class="diagram-node" data-id="example-api">
       <span data-icon="code"></span><h3>API</h3><p>The service behind it.</p>
     </div>
   </li>
-  <li><span class="diagram-connector" data-icon="arrowRight"></span>
-    <div class="diagram-node" data-id="example-cache">
+  <li><span class="diagram-connector fragment" data-fragment-index="0" data-id="example-api-cache" data-icon="arrowRight"></span>
+    <div class="diagram-node fragment" data-fragment-index="1" data-id="example-cache">
       <span data-icon="database"></span><h3>Cache</h3><p>An optional dependency.</p>
     </div>
   </li>
 </ol>
 
-Two frames. Shared IDs. A change people can follow.
+Keep the connected model; reveal the new arrow, then the cache.
 <!-- .element: class="source-line" -->
 
 Note:

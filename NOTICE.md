@@ -4,7 +4,7 @@ Original template code and the reusable deck shell/theme extracted from
 [IEvangelist/inside-aspire](https://github.com/IEvangelist/inside-aspire/tree/838d5e766947a4e27dbd12919ede7a6bc708c0f5/deck)
 are MIT licensed, copyright 2026 David Pine and contributors. The applicable
 copyright and permission notice is preserved in [LICENSE](LICENSE).
-The rich graph renderer and its fixed text metrics, staged endpoint gating,
+The rich graph renderer and its fixed text metrics, staged source gating,
 rounded routing/ports, and same-data narrow layout are reusable extractions;
 the source talk's graph definitions and narrative are not included.
 

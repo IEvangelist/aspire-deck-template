@@ -12,7 +12,8 @@ test('empty diagrams are valid and the generic model has distinct ports and a ro
   const connections = diagramConnections(graph);
   const inbound = connections.filter((edge) => edge.to === 'api' && edge.from !== 'cache');
   expect(new Set(inbound.map((edge) => edge.end.y)).size).toBe(inbound.length);
-  expect(connections.find((edge) => edge.id === 'read')?.stage).toBe(2);
+  expect(connections.find((edge) => edge.id === 'read')?.stage).toBe(3);
+  expect(connections.find((edge) => edge.id === 'declare')?.stage).toBeLessThan(graph.nodes.find((node) => node.id === 'api')!.stage);
   expect(connections.find((edge) => edge.id === 'result')?.path).toContain('Q');
 });
 
@@ -39,7 +40,7 @@ test('invalid icon and definition types fail with fields', () => {
   expect(() => parseDiagramJson('{')).toThrow('diagrams.json: invalid JSON');
 });
 
-test('whole SVG edges await both nodes and rewind; repeated instances have unique IDs', async ({ page }) => {
+test('SVG sequences reveal source, arrow, then destination and rewind; repeated instances have unique IDs', async ({ page }) => {
   await authorMarkdown(page, '<!-- .slide: id="graph-one" -->\n## Model\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="graph-two" -->\n## Repeat\n<div data-diagram="architecture"></div>');
   await ready(page);
   await jump(page, 'graph-one');
@@ -49,11 +50,15 @@ test('whole SVG edges await both nodes and rewind; repeated instances have uniqu
   await expect(graph.locator('[data-node="api"]')).not.toBeVisible();
   await expect(graph.locator('[data-edge="read"]')).not.toBeVisible();
   await page.locator('#next').click();
-  await expect(graph.locator('[data-node="api"]')).toBeVisible();
+  await expect(graph.locator('[data-edge="declare"]')).toBeVisible();
+  await expect(graph.locator('[data-node="api"]')).not.toBeVisible();
   await expect(graph.locator('[data-edge="read"]')).not.toBeVisible();
   await page.locator('#next').click();
-  await expect(graph.locator('[data-node="cache"]')).toBeVisible();
+  await expect(graph.locator('[data-node="api"]')).toBeVisible();
+  await expect(graph.locator('[data-node="cache"]')).not.toBeVisible();
+  await page.locator('#next').click();
   await expect(graph.locator('[data-edge="read"]')).toBeVisible();
+  await expect(graph.locator('[data-node="cache"]')).not.toBeVisible();
   await expect(graph.locator('[data-edge="read"] .edge-label')).toBeVisible();
   await expect(graph.locator('[data-edge="read"] .edge-path')).toHaveAttribute('marker-end', /url\(#diagram-/);
   await page.locator('#previous').click();

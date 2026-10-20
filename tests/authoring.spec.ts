@@ -141,7 +141,7 @@ test('every installed supported language can load without a hidden grammar failu
   expect(errors).toEqual([]);
 });
 
-test('editable diagram connectors follow labels and native auto-animate obeys static modes', async ({ page }) => {
+test('editable diagrams reveal box-arrow-box and native auto-animate obeys static modes', async ({ page }) => {
   await ready(page);
   await jump(page, 'model-to-observation');
   await expect(page.locator('#model-to-observation .diagram-node h3')).toHaveCount(3);
@@ -149,8 +149,13 @@ test('editable diagram connectors follow labels and native auto-animate obeys st
   await page.locator('#next').click();
   await expect(page.locator('#model-to-observation .diagram-connector.visible')).toHaveCount(1);
   await page.locator('#next').click();
+  await expect(page.locator('#model-to-observation .diagram-node.fragment.visible')).toHaveCount(1);
+  await expect(page.locator('#model-to-observation .diagram-connector.visible')).toHaveCount(1);
+  await page.locator('#next').click();
   await expect(page.locator('#model-to-observation .diagram-connector.visible')).toHaveCount(2);
   await jump(page, 'animate-a-model');
+  await page.locator('#next').click();
+  await page.locator('#next').click();
   await page.locator('#next').click();
   await expect(page.locator('#animate-add-cache')).toHaveAttribute('data-auto-animate', 'running');
   await expect(page.locator('#animate-add-cache [data-auto-animate-target]')).not.toHaveCount(0);

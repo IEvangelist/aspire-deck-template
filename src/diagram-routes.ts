@@ -53,7 +53,7 @@ export function diagramConnections(diagram: Diagram) {
       : [{ x: start.x, y: (start.y + end.y) / 2 }, { x: end.x, y: (start.y + end.y) / 2 }];
     return { ...edge, source, target, start, end,
       path: route([start, ...(edge.via.length ? edge.via : elbow), end]),
-      stage: Math.max(edge.stage, source.stage, target.stage),
+      stage: Math.max(edge.stage, source.stage),
       labelAt: edge.labelAt ?? { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 - 14 },
     };
   });
