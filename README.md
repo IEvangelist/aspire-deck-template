@@ -1,11 +1,17 @@
 # Aspire deck template
 
 A deck-only, Markdown-first [reveal.js](https://revealjs.com/) template in the
-official Aspire visual identity. Configurable introduction, self-hosted Poppins,
+official Aspire visual identity. Configurable introduction, self-hosted Poppins
+for prose and Fira Code for code,
 light/dark themes, speaker notes, reading mode, code copy, and PDF export.
 Editable diagram, fragment, auto-animate, and `apphost.mts` reference slides
 demonstrate the reusable shell. The reference is displayed code, not an app.
 No demo app, .NET SDK, Docker, or Aspire runtime.
+
+The presentation shell follows the [Aspire Design System reference](https://claude.ai/artifact/R9zRqsnYX5uKGYbWhms7r9):
+purple-tinted light/dark surfaces, a translucent compact toolbar, pill controls,
+soft panel shadows, and dark ink code windows. It does not embed that artifact's
+viewer, React components, or remote font/runtime dependencies.
 
 **[Use this template](https://github.com/IEvangelist/aspire-deck-template/generate)**
 &middot; **[Live example](https://ievangelist.github.io/aspire-deck-template/)**
@@ -332,6 +338,14 @@ metadata. These are build environment variables, not secrets.
 The 56px header provides Back, Next, a slide counter, and Menu.
 **Start presentation** advances to the actual next slide.
 
+Poppins is used for headings, prose, controls, and diagram labels. Fira Code is
+used for fenced and inline code, code filenames, and keyboard hints. Both fonts
+are self-hosted in the static build, including when deployed below a repository
+path. Code ligatures affect only drawing; copying keeps the exact source text.
+The toolbar has a solid-surface fallback when blur is unavailable or reduced
+transparency is requested. Motion stays presenter-controlled and respects
+reduced-motion preferences.
+
 | Action | Control |
 | --- | --- |
 | Advance / go back | Space, arrow keys, Back / Next |
@@ -357,6 +371,6 @@ the currently visible one. Code expands for print without hiding its contents.
 
 Code is [MIT](LICENSE). The official Aspire artwork is unchanged and CC0,
 but **trademark rights are not licensed** and no endorsement is implied.
-Poppins is SIL OFL; Reveal and Octicons are MIT; Highlight.js is BSD-3-Clause.
+Poppins and Fira Code are SIL OFL; Reveal and Octicons are MIT; Highlight.js is BSD-3-Clause.
 See [NOTICE.md](NOTICE.md) and `public/licenses/` for relevant original notices.
 Use appropriately licensed media for your own talk.

@@ -29,8 +29,15 @@ highlighted reference excerpt for a separate application, not a file to run here
 
 Choose a short title and one main idea per slide. Keep titles and paragraphs
 legible at projector scale; split dense content rather than shrinking type.
-Use the incumbent Poppins/official Aspire palette and centered content bounds.
-The header is intentionally compact.
+Use the official Aspire palette and centered content bounds. Poppins is for
+headings, prose, controls, and graph labels; Fira Code is for inline/fenced code,
+filenames, and keyboard hints. Both are self-hosted. Do not add Google Fonts,
+a CDN, or a different font family to an individual slide.
+The shell follows the linked Aspire Design System's purple-tinted light/dark
+surfaces, restrained glass toolbar, pill actions, soft panel shadows, and ink
+code windows. Keep the 56px header compact, controls at least 44px, and code
+captions fixed above the sole code-body scroller. Preserve the solid toolbar
+fallback for reduced transparency and high-contrast text in both themes.
 The introduction uses the original source layout and a clearly labeled neutral
 placeholder avatar. Replace the configured avatar or omit it; never copy a
 personal portrait or invent a headshot.
@@ -95,6 +102,8 @@ Columns stack in source/reading order on narrow, compact, and reading views.
 Code must stay left-aligned, preserve literal text, and retain its fixed-caption
 body scroller. Captions/supporting copy are secondary but remain visible and
 contrast-safe; do not hide controls or use timed/hover-only affordances.
+Never add manual line breaks or replace operators to imitate code ligatures.
+Fira Code handles their appearance without changing the text copied or printed.
 
 Keep a large rich graph full-width. A graph in a narrow column must use the
 same-data container-aware HTML fallback rather than tiny SVG labels. In desktop

@@ -56,6 +56,12 @@ for (const base of ['/', '/another-name/']) {
       }));
       expect(assets.every((asset) => asset.loaded && asset.url.startsWith(`${origin}${base}`))).toBe(true);
       expect(await page.evaluate(() => document.fonts.check('600 32px Poppins'))).toBe(true);
+      expect(await page.evaluate(() => document.fonts.check('400 24px "Fira Code"'))).toBe(true);
+      const fonts = await page.evaluate(() => [...document.fonts]
+        .filter((font) => font.family.replace(/["']/g, '') === 'Fira Code' && font.status === 'loaded')
+        .map((font) => font.weight));
+      expect(fonts).toContain('400');
+      await expect(page.locator('pre code').first()).toHaveCSS('font-family', /Fira Code/);
       for (const language of ['python', 'rust', 'sql']) {
         const code = page.locator(`code[data-language="${language}"]`);
         await expect(code).toHaveCount(1);
@@ -85,7 +91,7 @@ for (const base of ['/', '/another-name/']) {
       expect(new URL(page.url()).hash).toBe(`#/${last}`);
       await page.locator('#menu-toggle').click();
       expect(await page.locator('#print-link').getAttribute('href')).toMatch(new RegExp(`${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\?[^#]*print-pdf`));
-      for (const file of ['Poppins-OFL.txt', 'aspire-brand-CC0.txt', 'revealjs-MIT.txt', 'highlightjs-BSD.txt', 'octicons-MIT.txt']) {
+      for (const file of ['Poppins-OFL.txt', 'FiraCode-OFL.txt', 'aspire-brand-CC0.txt', 'revealjs-MIT.txt', 'highlightjs-BSD.txt', 'octicons-MIT.txt']) {
         expect((await page.request.get(`${origin}${base}licenses/${file}`)).ok()).toBe(true);
       }
       expect(failures).toEqual([]);

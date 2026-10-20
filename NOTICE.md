@@ -23,6 +23,8 @@ are unchanged.
 
 - Self-hosted Poppins: copyright 2020 The Poppins Project Authors,
   [SIL Open Font License 1.1](public/licenses/Poppins-OFL.txt).
+- Self-hosted Fira Code: copyright 2014-2020 The Fira Code Project Authors,
+  [SIL Open Font License 1.1](public/licenses/FiraCode-OFL.txt).
 - Reveal.js and its Markdown/Notes plugins:
   [MIT](public/licenses/revealjs-MIT.txt).
 - Highlight.js core and selected language definitions:

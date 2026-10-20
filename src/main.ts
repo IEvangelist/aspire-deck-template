@@ -6,6 +6,9 @@ import '@fontsource/poppins/latin-400.css';
 import '@fontsource/poppins/latin-500.css';
 import '@fontsource/poppins/latin-600.css';
 import '@fontsource/poppins/latin-700.css';
+import '@fontsource/fira-code/latin-400.css';
+import '@fontsource/fira-code/latin-500.css';
+import '@fontsource/fira-code/latin-600.css';
 import configUrl from '../deck.config.json?url&no-inline';
 import markdownUrl from '../slides.md?url&no-inline';
 import diagramsUrl from '../diagrams.json?url&no-inline';
@@ -79,7 +82,7 @@ function setTheme(theme: 'light' | 'dark') {
   document.documentElement.dataset.theme = theme;
   themeButton.replaceChildren(iconElement(theme === 'dark' ? 'sun' : 'moon'), text('span', `${theme === 'dark' ? 'Light' : 'Dark'} theme`), text('kbd', 'T'));
   themeButton.setAttribute('aria-label', `Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`);
-  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')!.content = theme === 'dark' ? '#1f1e33' : '#f8f7fc';
+  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')!.content = theme === 'dark' ? '#0f0d1d' : '#f6f4fb';
 }
 
 function toggleTheme() {
@@ -427,7 +430,12 @@ async function start() {
   toolbar.hidden = false;
   const markdownPlugin = Markdown();
   await preloadCodeLanguages(markdown, markdownPlugin);
-  await Promise.all([document.fonts.load('400 24px Poppins'), document.fonts.load('600 32px Poppins')]);
+  await Promise.all([
+    document.fonts.load('400 24px Poppins'),
+    document.fonts.load('600 32px Poppins'),
+    document.fonts.load('400 24px "Fira Code"'),
+    document.fonts.load('500 18px "Fira Code"'),
+  ]);
   deck = new Reveal(root, {
     ...dimensions(),
     margin: 0.07, minScale: 0.15, maxScale: 1.4,
