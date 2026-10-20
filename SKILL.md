@@ -33,11 +33,13 @@ Use the official Aspire palette and centered content bounds. Poppins is for
 headings, prose, controls, and graph labels; Fira Code is for inline/fenced code,
 filenames, and keyboard hints. Both are self-hosted. Do not add Google Fonts,
 a CDN, or a different font family to an individual slide.
-The shell follows the linked Aspire Design System's purple-tinted light/dark
-surfaces, restrained glass toolbar, pill actions, soft panel shadows, and ink
-code windows. Keep the 56px header compact, controls at least 44px, and code
-captions fixed above the sole code-body scroller. Preserve the solid toolbar
-fallback for reduced transparency and high-contrast text in both themes.
+Use aspire.dev as the primary visual authority: heavier Poppins headlines,
+open headline tracking, flatter light/dark surfaces, squared deep-purple
+actions, subtle borders, and compact code windows. The linked design-system
+artifact is secondary guidance; do not drift into a pill-heavy/glossy shell.
+Keep the 56px header compact, controls at least 44px, and code captions fixed
+above the sole code-body scroller. Preserve the solid toolbar fallback for
+reduced transparency and high-contrast text in both themes.
 The introduction uses the original source layout and a clearly labeled neutral
 placeholder avatar. Replace the configured avatar or omit it; never copy a
 personal portrait or invent a headshot.
@@ -213,6 +215,10 @@ desktop/projector light/dark and a narrow viewport, reading mode, named/vertical
 links and counts, Next/Back, notes, copy, reduced motion, and full-content print.
 Check that media/fonts/Markdown/language modules still load under both `/` and
 a renamed project Pages path.
+Check the actual painted glyph fonts, not only `font-family` declarations or
+`document.fonts` entries: Chromium's `CSS.getPlatformFontsForNode` must report
+custom Poppins faces for visible headings/prose and Fira Code faces for visible
+code. The tests include this check in both development and portable builds.
 
 The generated repository needs **Settings > Pages > Source: GitHub Actions**
 once. Push to its actual default branch to validate and publish. Use the

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { build, preview, type PreviewServer } from 'vite';
 import { parseDeckJson } from '../src/config';
-import { exampleMarkdown } from './helpers';
+import { exampleMarkdown, paintedFonts } from './helpers';
 
 for (const base of ['/', '/another-name/']) {
   test(`production authoring assets, navigation and canonical metadata at ${base}`, async ({ page }, testInfo) => {
@@ -48,6 +48,8 @@ for (const base of ['/', '/another-name/']) {
       await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');
       await page.evaluate(() => document.fonts.ready);
       await expect(page).toHaveTitle(config.title);
+      const headingFonts = await paintedFonts(page, '#intro h1');
+      expect(headingFonts.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
       await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', canonical);
       await expect(page.locator('.presenter-avatar')).toHaveAttribute('src', `${origin}${base}brand/aspire-icon-256.svg`);
       const assets = await page.locator('img').evaluateAll((images) => images.map((image) => {
@@ -84,6 +86,10 @@ for (const base of ['/', '/another-name/']) {
       await page.locator('#start-presentation').click();
       await expect(page.locator('#slide-position')).toHaveText(`2 / ${count}`);
       expect(new URL(page.url()).hash).toBe(`#/${first}`);
+      await page.locator('#menu-toggle').click();
+      await page.locator('#slide-list [data-slide="code-example"]').click();
+      const codeFonts = await paintedFonts(page, '#code-example pre code');
+      expect(codeFonts.every((font) => font.isCustomFont && font.postScriptName.startsWith('FiraCode'))).toBe(true);
       await page.locator('#menu-toggle').click();
       const last = await page.locator('#slide-list a').last().getAttribute('data-slide');
       await page.locator('#slide-list a').last().click();

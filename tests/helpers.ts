@@ -65,6 +65,24 @@ export async function ready(page: Page, path = '?mode=present') {
   await page.evaluate(() => document.fonts.ready);
 }
 
+export async function paintedFonts(page: Page, selector: string) {
+  const session = await page.context().newCDPSession(page);
+  try {
+    await session.send('DOM.enable');
+    await session.send('CSS.enable');
+    const { root } = await session.send('DOM.getDocument');
+    const { nodeId } = await session.send('DOM.querySelector', { nodeId: root.nodeId, selector });
+    expect(nodeId, `${selector} must exist before measuring painted glyphs`).toBeGreaterThan(0);
+    const result: { fonts: { postScriptName: string; isCustomFont: boolean; glyphCount: number }[] } =
+      await session.send('CSS.getPlatformFontsForNode', { nodeId });
+    const fonts = result.fonts.filter((font) => font.glyphCount > 0);
+    expect(fonts.length, `${selector} must have actual painted glyphs, not an inactive measurement`).toBeGreaterThan(0);
+    return fonts;
+  } finally {
+    await session.detach();
+  }
+}
+
 export async function jump(page: Page, id: string) {
   await page.locator('#menu-toggle').click();
   await page.locator(`#slide-list a[data-slide="${id}"]`).click();

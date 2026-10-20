@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { authorMarkdown, captureClipboard, expectCopied, jump, ready } from './helpers';
+import { authorMarkdown, captureClipboard, expectCopied, jump, paintedFonts, ready } from './helpers';
 
 test('prose and all code roles use the requested self-hosted font families', async ({ page }) => {
   const requests: string[] = [];
@@ -29,19 +29,22 @@ test('prose and all code roles use the requested self-hosted font families', asy
   expect(requests.some((url) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toBe(false);
 });
 
-test('reference-informed shell keeps pill actions, soft surfaces and accessible targets in both themes', async ({ page }) => {
+test('official-site shell keeps squared actions, flatter surfaces and accessible targets in both themes', async ({ page }) => {
   await ready(page);
   for (const theme of ['light', 'dark']) {
     await page.locator('#presentation').focus();
     if (await page.locator('html').getAttribute('data-theme') !== theme) await page.keyboard.press('t');
-    for (const selector of ['#next', '#menu-toggle', '#start-presentation']) {
-      await expect(page.locator(selector)).toHaveCSS('border-radius', '999px');
+    for (const selector of ['#next', '#menu-toggle']) {
+      await expect(page.locator(selector)).toHaveCSS('border-radius', '8px');
     }
+    await expect(page.locator('#start-presentation')).toHaveCSS('border-radius', '10.4px');
+    await expect(page.locator('body')).toHaveCSS('background-color', theme === 'dark' ? 'rgb(21, 20, 35)' : 'rgb(245, 246, 248)');
+    await expect(page.locator('body')).toHaveCSS('background-image', 'none');
     await expect(page.locator('#toolbar')).toHaveCSS('height', '56px');
     const audience = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(audience.violations).toEqual([]);
     await page.locator('#menu-toggle').click();
-    await expect(page.locator('#deck-menu')).toHaveCSS('border-radius', '24px');
+    await expect(page.locator('#deck-menu')).toHaveCSS('border-radius', '16px');
     await expect(page.locator('#deck-menu')).not.toHaveCSS('box-shadow', 'none');
     const menu = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(menu.violations).toEqual([]);
@@ -66,7 +69,7 @@ test('Fira Code ligatures never alter copyable source or code contrast', async (
     if (await page.locator('html').getAttribute('data-theme') !== theme) await page.keyboard.press('t');
     const audit = await new AxeBuilder({ page }).include('#font-code').withRules(['color-contrast']).analyze();
     expect(audit.violations).toEqual([]);
-    await expect(page.locator('#font-code .code-panel')).toHaveCSS('border-radius', '22px');
+    await expect(page.locator('#font-code .code-panel')).toHaveCSS('border-radius', '12.8px');
   }
 });
 
@@ -90,4 +93,33 @@ test('print retains Fira Code with light readable colors and complete code bodie
   await expect(code).toHaveCSS('color', 'rgb(31, 30, 51)');
   await expect(page.locator('pre').first()).toHaveCSS('max-height', 'none');
   await expect(page.locator('#toolbar')).not.toBeVisible();
+});
+
+test('actual painted glyphs use Poppins Bold for headlines, Poppins for prose and Fira Code for code', async ({ page }) => {
+  await ready(page);
+  const heading = await paintedFonts(page, '#intro h1');
+  expect(heading.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
+  const prose = await paintedFonts(page, '.presenter-role');
+  expect(prose.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Regular')).toBe(true);
+  const brand = await paintedFonts(page, '.brand-name');
+  expect(brand.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
+  await jump(page, 'apphost-example');
+  const title = await paintedFonts(page, '#apphost-example h2');
+  expect(title.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
+  const code = await paintedFonts(page, '#apphost-example pre code');
+  expect(code.every((font) => font.isCustomFont && font.postScriptName.startsWith('FiraCode'))).toBe(true);
+});
+
+test('official-site heading weights and open tracking survive narrow and reading layouts', async ({ page }) => {
+  await ready(page);
+  await expect(page.locator('#intro h1')).toHaveCSS('font-weight', '650');
+  await expect(page.locator('#intro h1')).toHaveCSS('letter-spacing', '0.84px');
+  await jump(page, 'make-it-yours');
+  await expect(page.locator('#make-it-yours h2')).toHaveCSS('font-weight', '620');
+  await expect(page.locator('#make-it-yours h2')).toHaveCSS('letter-spacing', '0.58px');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.keyboard.press('r');
+  const heading = await paintedFonts(page, '#make-it-yours h2');
+  expect(heading.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
+  await expect(page.locator('.brand-name')).not.toBeVisible();
 });

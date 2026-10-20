@@ -8,10 +8,11 @@ Editable diagram, fragment, auto-animate, and `apphost.mts` reference slides
 demonstrate the reusable shell. The reference is displayed code, not an app.
 No demo app, .NET SDK, Docker, or Aspire runtime.
 
-The presentation shell follows the [Aspire Design System reference](https://claude.ai/artifact/R9zRqsnYX5uKGYbWhms7r9):
-purple-tinted light/dark surfaces, a translucent compact toolbar, pill controls,
-soft panel shadows, and dark ink code windows. It does not embed that artifact's
-viewer, React components, or remote font/runtime dependencies.
+The presentation shell takes its primary style cues from **[aspire.dev](https://aspire.dev/)**:
+heavier Poppins headlines with open tracking, flatter light/dark surfaces,
+deep-purple squared actions, subtle borders, and compact code windows.
+The [Aspire Design System reference](https://claude.ai/artifact/R9zRqsnYX5uKGYbWhms7r9)
+is supporting guidance, not an embedded viewer or a source of runtime dependencies.
 
 **[Use this template](https://github.com/IEvangelist/aspire-deck-template/generate)**
 &middot; **[Live example](https://ievangelist.github.io/aspire-deck-template/)**
@@ -342,6 +343,9 @@ Poppins is used for headings, prose, controls, and diagram labels. Fira Code is
 used for fenced and inline code, code filenames, and keyboard hints. Both fonts
 are self-hosted in the static build, including when deployed below a repository
 path. Code ligatures affect only drawing; copying keeps the exact source text.
+Headlines use aspire.dev's heavier 650/620 weight treatment and open tracking,
+not an artificially condensed Poppins appearance. Font checks inspect the
+browser's actual painted glyph faces as well as loading and CSS declarations.
 The toolbar has a solid-surface fallback when blur is unavailable or reduced
 transparency is requested. Motion stays presenter-controlled and respects
 reduced-motion preferences.
