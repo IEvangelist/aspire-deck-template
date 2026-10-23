@@ -191,6 +191,7 @@ function synchronize() {
   if (reading) for (const slide of root.querySelectorAll('section')) slide.removeAttribute('aria-hidden');
   const index = slides.indexOf(current);
   if (index < 0) return;
+  document.documentElement.dataset.intro = String(index === 0);
   position.value = `${index + 1} / ${slides.length}`;
   position.setAttribute('aria-label', `Slide ${index + 1} of ${slides.length}`);
   currentTitle.textContent = slideTitle(current, index);
@@ -335,6 +336,7 @@ function prepareSlides() {
     for (const child of [...slide.childNodes]) {
       if (!(child instanceof HTMLElement && child.classList.contains('notes'))) content.append(child);
     }
+    if (slide.dataset.kicker) content.prepend(text('p', slide.dataset.kicker, 'slide-kicker'));
     slide.prepend(content);
     for (const image of slide.querySelectorAll('img')) {
       const source = image.getAttribute('src');
@@ -359,6 +361,7 @@ function prepareSlides() {
     }
   }
   const list = element('slide-list', HTMLOListElement);
+  element('menu-summary', HTMLParagraphElement).textContent = `${slides.length} slides`;
   list.replaceChildren(...slides.map((slide, index) => {
     const item = document.createElement('li');
     const anchor = document.createElement('a');

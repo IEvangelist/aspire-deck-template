@@ -33,9 +33,10 @@ Use the official Aspire palette and centered content bounds. Poppins is for
 headings, prose, controls, and graph labels; Fira Code is for inline/fenced code,
 filenames, and keyboard hints. Both are self-hosted. Do not add Google Fonts,
 a CDN, or a different font family to an individual slide.
-Use aspire.dev as the primary visual authority: heavier Poppins headlines,
-open headline tracking, flatter light/dark surfaces, squared deep-purple
-actions, subtle borders, and compact code windows. The linked design-system
+Use aspire.dev as the primary visual authority: heavier Poppins headlines with
+open tracking and one accented word, a quiet purple glow, hairline surfaces,
+squared deep-purple actions, traffic-light code and diagram windows, numbered
+Steps, and mono section kickers. The linked design-system
 artifact is secondary guidance; do not drift into a pill-heavy/glossy shell.
 Keep the 56px header compact, controls at least 44px, and code captions fixed
 above the sole code-body scroller. Preserve the solid toolbar fallback for
@@ -112,6 +113,27 @@ same-data container-aware HTML fallback rather than tiny SVG labels. In desktop
 split presentation its full content is reachable in a labeled keyboard-scrolling
 region; read/compact/print expand it. Check the real column and all relationships,
 not just the browser viewport width or a CSS class.
+
+## Design components
+
+Prefer these shell components over custom HTML. All are plain Markdown or
+Reveal's native attribute comments, and all keep working in reading and print:
+
+- Accent one heading word with Markdown bold: `## Write in **Markdown**`.
+- `data-kicker="Label"` on the slide comment adds a short mono section label.
+  Use it for a few chapter labels, not on every slide.
+- Numbered lists render as a Steps rail. Lead each item with `**A short title.**`
+  then one sentence; keep three to five steps.
+- `card-row` > `card` (an icon `span`, an `h3`, one `p`) is for a few genuine
+  peers. Do not make every slide a card grid.
+- `<!-- .element: class="feature-list" -->` on its own line after a bullet list
+  makes large numbered rows; fragment items still reveal in order.
+- Fenced code and `data-diagram` graphs share one window chrome. Name it with
+  `data-caption`; never fake window chrome in your own HTML.
+- Tables, block quotes, `<kbd>`, and Reveal's native `class="center"` (vertical
+  centering for a sparse slide) are styled by the shell.
+- The hero grid belongs to the generated title slide only. Do not add grid or
+  dot backgrounds to content slides; the ambient glow is already applied.
 
 ## Diagrams, icons, and motion
 

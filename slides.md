@@ -1,11 +1,25 @@
-<!-- .slide: id="make-it-yours" -->
-## Make it yours
+<!-- .slide: id="make-it-yours" data-kicker="Start here" -->
+## Make it **yours**
 
 One deck. No application to maintain.
 
-- **Your introduction** lives in `deck.config.json`.
-- **Your slides** live in `slides.md`.
-- **Your media** lives in `public/assets/`.
+<div class="card-row">
+  <div class="card">
+    <span data-icon="person"></span>
+    <h3>Your introduction</h3>
+    <p>Set it in <code>deck.config.json</code></p>
+  </div>
+  <div class="card">
+    <span data-icon="markdown"></span>
+    <h3>Your slides</h3>
+    <p>Write them in <code>slides.md</code></p>
+  </div>
+  <div class="card">
+    <span data-icon="image"></span>
+    <h3>Your media</h3>
+    <p>Add files to <code>public/assets/</code></p>
+  </div>
+</div>
 
 Note:
 Replace these starter slides with your own story. The intro is generated from
@@ -13,10 +27,18 @@ your configuration, so you do not need to repeat it in this file.
 
 ---
 
-<!-- .slide: id="write-in-markdown" -->
-## Write in Markdown
+<!-- .slide: id="write-in-markdown" class="layout-split" data-kicker="Author" -->
+## Write in **Markdown**
+
+<div class="layout-copy">
 
 Put `---` on its own line to start another slide.
+
+Headings, lists, links, images, and code all work. Add HTML only for a custom layout.
+
+</div>
+
+<div class="layout-visual">
 
 ```markdown
 ## Your next idea
@@ -26,6 +48,9 @@ A short explanation, a useful example.
 - Something worth remembering
 - Something worth trying
 ```
+<!-- .element: data-caption="slides.md" -->
+
+</div>
 
 Note:
 Keep one main idea on each slide. Ordinary Markdown is enough; HTML is optional
@@ -33,8 +58,8 @@ for advanced layouts.
 
 ---
 
-<!-- .slide: id="copyable-code" -->
-## Code you can copy
+<!-- .slide: id="copyable-code" data-kicker="Code" -->
+## Code you can **copy**
 
 Fenced code gets real syntax highlighting. Copy keeps the original text.
 
@@ -54,8 +79,8 @@ or Aspire CLI is required.
 
 ---
 
-<!-- .slide: id="apphost-example" -->
-## A small AppHost
+<!-- .slide: id="apphost-example" data-kicker="Reference" -->
+## A small **AppHost**
 
 ```typescript
 import { createBuilder } from "./.aspire/modules/aspire.mjs";
@@ -79,8 +104,8 @@ The reference models an API, a frontend, and the dependency between them.
 
 ---
 
-<!-- .slide: id="rich-architecture" -->
-## Route a richer model
+<!-- .slide: id="rich-architecture" data-kicker="Diagram" -->
+## Route a **richer** model
 
 <div data-diagram="architecture"></div>
 
@@ -95,8 +120,8 @@ The narrow layout follows the same sequence. Back rewinds one step at a time.
 
 ---
 
-<!-- .slide: id="model-to-observation" -->
-## Show the relationship
+<!-- .slide: id="model-to-observation" data-kicker="Flow" -->
+## Show the **relationship**
 
 <ol class="diagram-flow" aria-label="AppHost model to resources to observation">
   <li>
@@ -134,8 +159,8 @@ Reading, reduced-motion, and print show the complete relationship immediately.
 
 ---
 
-<!-- .slide: id="animate-a-model" data-auto-animate="true" data-auto-animate-id="model-example" data-auto-animate-unmatched="false" -->
-## Change the model
+<!-- .slide: id="animate-a-model" data-kicker="Animate" data-auto-animate="true" data-auto-animate-id="model-example" data-auto-animate-unmatched="false" -->
+## Change the **model**
 
 <ol class="diagram-flow two-nodes" aria-label="Frontend connected to API">
   <li><div class="diagram-node" data-id="example-web">
@@ -157,8 +182,8 @@ There is no autoplay, custom animation controller, or animation library.
 
 ---
 
-<!-- .slide: id="animate-add-cache" data-auto-animate="true" data-auto-animate-id="model-example" data-auto-animate-unmatched="false" -->
-## Change the model
+<!-- .slide: id="animate-add-cache" data-kicker="Animate" data-auto-animate="true" data-auto-animate-id="model-example" data-auto-animate-unmatched="false" -->
+## Change the **model**
 
 <ol class="diagram-flow" aria-label="Frontend connected to API connected to cache">
   <li><div class="diagram-node" data-id="example-web">
@@ -185,8 +210,8 @@ Reduced-motion, reading, and print do not wait for animation.
 
 ---
 
-<!-- .slide: id="add-media" -->
-## Give the idea space
+<!-- .slide: id="add-media" data-kicker="Media" -->
+## Give the idea **space**
 
 ![Unchanged official Aspire mark](brand/aspire-icon-256.svg)
 <!-- .element: class="slide-image align-center" -->
@@ -199,12 +224,14 @@ Images retain their full aspect ratio. Use a meaningful description.
 
 ---
 
-<!-- .slide: id="reveal-the-story" -->
-## Reveal the story
+<!-- .slide: id="reveal-the-story" data-kicker="Fragments" -->
+## Reveal the **story**
 
 - Start with the idea. <!-- .element: class="fragment" -->
 - Add the evidence. <!-- .element: class="fragment" -->
 - Leave a next step. <!-- .element: class="fragment" -->
+
+<!-- .element: class="feature-list" -->
 
 Fragments follow your advance, not a timer.
 
@@ -214,12 +241,17 @@ modes show every point immediately.
 
 --
 
-<!-- .slide: id="a-little-deeper" -->
-## Go a little deeper
+<!-- .slide: id="a-little-deeper" data-kicker="Vertical" -->
+## Go a little **deeper**
 
-Put `--` on its own line for a vertical slide.
+Put `--` on its own line to add a vertical slide.
 
-Use **Down** to explore a stack, or **Next** to continue in order.
+| Press | To |
+| --- | --- |
+| <kbd>Down</kbd> | Go deeper in the stack |
+| <kbd>Up</kbd> | Step back up the stack |
+| <kbd>Right</kbd> | Continue to the next slide |
+
 The menu and counter include every slide, including this one.
 
 Note:
@@ -228,7 +260,7 @@ not as a requirement for ordinary authoring.
 
 ---
 
-<!-- .slide: id="statement-layout" class="layout-statement" -->
+<!-- .slide: id="statement-layout" class="layout-statement" data-kicker="Layout" -->
 ## One slide. <em class="accent">One idea.</em>
 
 A clear claim gives the audience something to carry into the next example.
@@ -240,8 +272,8 @@ claim and a short supporting paragraph; move the detailed evidence to another sl
 
 ---
 
-<!-- .slide: id="split-layout" class="layout-split" -->
-## Keep the claim beside the evidence
+<!-- .slide: id="split-layout" class="layout-split" data-kicker="Layout" -->
+## Keep the claim beside the **evidence**
 
 <div class="layout-copy">
   <h3>Content and shell</h3>
@@ -261,16 +293,16 @@ same-definition node/relationship fallback, not shrunken SVG labels.
 
 ---
 
-<!-- .slide: id="comparison-layout" class="layout-comparison" -->
-## Choose a useful pace
+<!-- .slide: id="comparison-layout" class="layout-comparison" data-kicker="Layout" -->
+## Choose a useful **pace**
 
 <div class="comparison-columns">
   <div class="comparison-panel">
-    <h3>One dense slide</h3>
+    <h3><span data-icon="x"></span>One dense slide</h3>
     <p>Several ideas compete for the same space.</p>
   </div>
-  <div class="comparison-panel">
-    <h3>A focused sequence</h3>
+  <div class="comparison-panel is-featured">
+    <h3><span data-icon="check"></span>A focused sequence</h3>
     <p>Each idea gets a claim, an example, and a moment to land.</p>
   </div>
 </div>
@@ -281,12 +313,12 @@ they are not a card grid to apply to every slide.
 
 ---
 
-<!-- .slide: id="publish-on-push" -->
-## From your repo to the room
+<!-- .slide: id="publish-on-push" data-kicker="Publish" -->
+## From your repo to the **room**
 
-1. Use this template and edit your introduction and slides.
-2. In **Settings > Pages**, select **GitHub Actions** once.
-3. Push your changes. The workflow checks, builds, and publishes.
+1. **Use this template.** Create your repository, then edit your introduction and slides.
+2. **Turn on Pages once.** In **Settings > Pages**, select **GitHub Actions**.
+3. **Push your changes.** The workflow checks, builds, and publishes your deck.
 
 Your content. Your repository. Your presentation.
 

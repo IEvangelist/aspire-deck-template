@@ -69,13 +69,18 @@ export async function renderDiagrams(definitions: Diagrams, scope: ParentNode = 
       return `${nodes}${edges}`;
     }).join('');
     mount.innerHTML = `
-      <svg class="architecture-svg" data-graph="${key}" viewBox="0 0 ${diagram.width} ${diagram.height}" role="img" aria-labelledby="${prefix}-title ${prefix}-description" xmlns="http://www.w3.org/2000/svg">
-        <title id="${prefix}-title">${escape(diagram.title)}</title>
-        <desc id="${prefix}-description">${escape(diagram.description)}</desc>
-        ${markup}
-      </svg>
-      <div class="architecture-mobile" role="region" tabindex="0" aria-label="${escape(diagram.title)}: nodes and connections">
-        <ol class="graph-node-list">${mobile}</ol>
+      <div class="diagram-window">
+        <div class="window-chrome" aria-hidden="true"><span class="window-dots"></span><span class="window-title">${escape(mount.dataset.caption ?? diagram.title)}</span></div>
+        <div class="diagram-body">
+          <svg class="architecture-svg" data-graph="${key}" viewBox="0 0 ${diagram.width} ${diagram.height}" role="img" aria-labelledby="${prefix}-title ${prefix}-description" xmlns="http://www.w3.org/2000/svg">
+            <title id="${prefix}-title">${escape(diagram.title)}</title>
+            <desc id="${prefix}-description">${escape(diagram.description)}</desc>
+            ${markup}
+          </svg>
+          <div class="architecture-mobile" role="region" tabindex="0" aria-label="${escape(diagram.title)}: nodes and connections">
+            <ol class="graph-node-list">${mobile}</ol>
+          </div>
+        </div>
       </div>`;
     mount.dataset.steps = String(stages.filter((stage) => stage > 0).length);
   }

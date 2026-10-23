@@ -7,7 +7,8 @@ async function settledHeading(page: Page, id: string, index: number, count: numb
   await expect.poll(() => page.locator(`#${id}`).evaluate((slide) => {
     const viewport = document.getElementById('slide-viewport')!.getBoundingClientRect();
     const heading = slide.querySelector('h1, h2, h3')!.getBoundingClientRect();
-    return heading.top >= viewport.top && heading.top <= viewport.top + 100;
+    // The slide itself must sit at the top of the independent scroller; an optional kicker may precede its heading.
+    return Math.abs(slide.getBoundingClientRect().top - viewport.top) <= 2 && heading.top >= viewport.top && heading.bottom <= viewport.bottom;
   })).toBe(true);
   expect(new URL(page.url()).hash).toBe(`#/${id}`);
 }

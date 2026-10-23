@@ -9,8 +9,10 @@ demonstrate the reusable shell. The reference is displayed code, not an app.
 No demo app, .NET SDK, Docker, or Aspire runtime.
 
 The presentation shell takes its primary style cues from **[aspire.dev](https://aspire.dev/)**:
-heavier Poppins headlines with open tracking, flatter light/dark surfaces,
-deep-purple squared actions, subtle borders, and compact code windows.
+heavier Poppins headlines with open tracking and a single accented word, a
+quiet deep-purple glow, hairline surfaces, squared actions, traffic-light code
+and diagram windows, numbered Steps, mono section kickers, and the faint hero
+grid behind the title slide.
 The [Aspire Design System reference](https://claude.ai/artifact/R9zRqsnYX5uKGYbWhms7r9)
 is supporting guidance, not an embedded viewer or a source of runtime dependencies.
 
@@ -199,6 +201,29 @@ legible rather than scaling the columns down. Code stays left-aligned and
 copyable, even in a centered statement. Use `accent` selectively, not on every
 paragraph. `layout-caption` is secondary supporting copy, not hidden content.
 
+### Design components
+
+The shell ships a few reusable parts in the aspire.dev style. They are plain
+Markdown, Reveal's native attribute comments, or small HTML snippets: no new
+syntax and nothing to change in TypeScript. Copy working examples from
+`slides.md`.
+
+| Part | How to author it |
+| --- | --- |
+| Accent word | Bold one word in a heading: `## Write in **Markdown**`. It takes the accent color at the heading's own weight. |
+| Section kicker | Add `data-kicker="Author"` to the slide comment: `<!-- .slide: id="author" data-kicker="Author" -->`. Omit it for no label. |
+| Steps | Any numbered list becomes a Steps rail. Lead each item with `**A short title.**`, then one sentence. |
+| Cards | `<div class="card-row">` containing `<div class="card">` groups of `<span data-icon="rocket"></span>`, an `<h3>`, and one `<p>`. Use them for a few genuine peers, not on every slide. |
+| Feature rows | After a bullet list, add `<!-- .element: class="feature-list" -->` on its own line for large numbered rows. Fragment items still reveal in order. |
+| Windows | Fenced code and `data-diagram` graphs share one window chrome. Name a code window with `data-caption`; a diagram uses its JSON `title`, or `data-caption` on the `div`. |
+| Tables, quotes, keys | Standard Markdown tables become a rounded panel, `> a quote` becomes a quote panel with an accent mark, and `<kbd>Down</kbd>` renders a key cap. |
+| Centered slide | Reveal's native `<!-- .slide: class="center" -->` vertically centers a sparse slide. Content slides otherwise keep one top anchor. |
+
+The title slide adds the aspire.dev hero grid (1px lines on a 72px cell that
+fade toward the edges) behind its intro. It appears only there, fades out as you
+move on, and is not printed. The ambient glow behind every slide is decorative
+and also disappears for print. Light and dark keep the same structure.
+
 Keep large rich diagrams full-width when possible. The graph fallback now
 responds to its **container width**, including a narrow split column on a wide
 screen. All same-data nodes/relationships remain present. In desktop split
@@ -363,7 +388,9 @@ metadata. These are build environment variables, not secrets.
 ## Present, read, print
 
 The 56px header provides Back, Next, a slide counter, and Menu.
-**Start presentation** advances to the actual next slide.
+**Start presentation** advances to the actual next slide. The menu is a fixed
+panel: the heading and the theme, reading, overview, notes, and print controls
+stay visible while only the slide list scrolls.
 
 Poppins is used for headings, prose, controls, and diagram labels. Fira Code is
 used for fenced and inline code, code filenames, and keyboard hints. Both fonts

@@ -35,18 +35,23 @@
     </main>
     <dialog id="deck-menu" class="deck-menu" aria-labelledby="menu-heading">
       <div class="menu-heading">
-        <h2 id="menu-heading">Your slides</h2>
+        <div>
+          <h2 id="menu-heading">Your slides</h2>
+          <p id="menu-summary" class="menu-summary"></p>
+        </div>
         <form method="dialog"><button type="submit" aria-label="Close menu"><span data-icon="close"></span></button></form>
       </div>
-      <nav aria-label="Slide navigation"><ol id="slide-list" class="slide-list"></ol></nav>
-      <div class="menu-controls">
-        <button id="theme" type="button">Dark theme <kbd>T</kbd></button>
-        <button id="read-mode" type="button" aria-pressed="false">Reading mode <kbd>R</kbd></button>
-        <button id="overview" type="button"><span data-icon="screen"></span>Overview <kbd>Esc</kbd></button>
-        <button id="notes" type="button"><span data-icon="book"></span>Speaker notes <kbd>S</kbd></button>
-        <a id="print-link" target="_blank" rel="noopener"><span data-icon="file"></span>Print / PDF</a>
+      <nav class="menu-slides" aria-label="Slide navigation"><ol id="slide-list" class="slide-list"></ol></nav>
+      <div class="menu-footer">
+        <div class="menu-controls">
+          <button id="theme" type="button">Dark theme <kbd>T</kbd></button>
+          <button id="read-mode" type="button" aria-pressed="false">Reading mode <kbd>R</kbd></button>
+          <button id="overview" type="button"><span data-icon="screen"></span>Overview <kbd>Esc</kbd></button>
+          <button id="notes" type="button"><span data-icon="book"></span>Speaker notes <kbd>S</kbd></button>
+          <a id="print-link" target="_blank" rel="noopener"><span data-icon="file"></span>Print / PDF</a>
+        </div>
+        <p class="menu-help">Arrow keys or Space to advance. Scroll code without advancing. Press Esc to close this menu.</p>
       </div>
-      <p class="menu-help">Arrow keys or Space to advance. Scroll code without advancing. Press Esc to close this menu.</p>
     </dialog>
     <p id="deck-status" class="deck-status" role="status"></p>
     <section id="failure" class="failure" role="alert" hidden>
