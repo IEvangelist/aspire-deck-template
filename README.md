@@ -268,6 +268,12 @@ Rapid advance completes the previous reveal rather than overlapping steps;
 Back removes the last exposed part. Static prose slides do not animate every
 paragraph.
 
+Flow connectors are bare accent arrows (`<span class="diagram-connector" data-icon="arrowRight">`)
+centred in the gap, with no circle or badge around them. The shell positions
+them with insets and margins, not `transform`, because Reveal's auto-animate
+rewrites `transform` on matched elements and would knock a transformed arrow
+off-centre once the move ends. Keep any restyling of a connector off `transform`.
+
 ### The complete icon catalog
 
 The full bundled [Primer Octicons catalog](https://primer.style/octicons/)

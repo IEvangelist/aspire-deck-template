@@ -187,6 +187,11 @@ Do not reveal every label/box upfront. The destination is deliberately hidden
 until the advance after its arrow. Diagram layouts must stack with readable
 labels on narrow screens, preserving arrow direction in static modes.
 
+Connectors are bare accent arrows centred in the gap; do not wrap them in a
+circle or badge. Position a connector with insets or margins, never `transform`:
+Reveal's auto-animate rewrites `transform` on matched elements, which leaves a
+transformed arrow off-centre after the move.
+
 Use `<!-- .element: class="fragment" -->` on a list item or element for a
 presenter-stepped reveal. For native auto-animate, use two consecutive slides
 with `data-auto-animate="true"` and the same `data-auto-animate-id`; give matching

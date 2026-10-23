@@ -1,5 +1,5 @@
-import { expect, test } from '@playwright/test';
-import { authorMarkdown, jump, ready, renderedIds } from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+import { authorMarkdown, jump, ready, renderedIds, settleMotion } from './helpers';
 
 const designed = `<!-- .slide: id="designed" data-kicker="Plan" -->
 ## Make a **plan**
@@ -154,4 +154,97 @@ test('every slide prints on exactly one page, including centered statements and 
   await expect.poll(() => page.locator('.pdf-page').count()).toBe(expected);
   const heights = await page.locator('.pdf-page').evaluateAll((pages) => pages.map((node) => Math.round(node.getBoundingClientRect().height)));
   expect(new Set(heights).size, `page heights ${heights.join(', ')}`).toBe(1);
+});
+
+// How far each connector's centre is from the middle of the gap it bridges (or, when the cards stack, from the
+// card's centre line and the gap above it). Reveal's auto-animate rewrites `transform` on matched elements, so this
+// is measured after a real keyboard-driven transition rather than on a fresh load.
+async function connectorOffsets(page: Page, id: string) {
+  return page.locator(`#${id}`).evaluate((slide) => [...slide.querySelectorAll<HTMLElement>('.diagram-connector')].map((connector) => {
+    const item = connector.closest('li')!;
+    const card = item.querySelector('.diagram-node')!.getBoundingClientRect();
+    const before = item.previousElementSibling!.querySelector('.diagram-node')!.getBoundingClientRect();
+    const box = connector.getBoundingClientRect();
+    const stacked = card.top >= before.bottom - 1;
+    const target = stacked
+      ? { x: card.left + card.width / 2, y: (before.bottom + card.top) / 2 }
+      : { x: (before.right + card.left) / 2, y: card.top + card.height / 2 };
+    return {
+      id: connector.dataset.id ?? '', stacked,
+      dx: box.left + box.width / 2 - target.x, dy: box.top + box.height / 2 - target.y,
+      glyph: getComputedStyle(connector.querySelector('svg')!).rotate,
+    };
+  }));
+}
+
+const worstOffset = (offsets: { dx: number; dy: number }[]) => Math.max(0, ...offsets.flatMap((offset) => [Math.abs(offset.dx), Math.abs(offset.dy)]));
+
+test('flow connectors are bare accent arrows, with no circle, ring or badge', async ({ page }) => {
+  await ready(page);
+  for (const id of ['model-to-observation', 'animate-add-cache']) {
+    await jump(page, id);
+    const chrome = await page.locator(`#${id} .diagram-connector`).evaluateAll((connectors) => connectors.map((connector) => {
+      const style = getComputedStyle(connector);
+      return {
+        radius: style.borderTopLeftRadius, shadow: style.boxShadow, background: style.backgroundColor, border: style.borderTopWidth,
+        outline: style.outlineStyle, glyph: getComputedStyle(connector.querySelector('svg')!).width, color: style.color,
+        accent: getComputedStyle(document.querySelector('.slide-kicker')!).color,
+      };
+    }));
+    expect(chrome.length, id).toBeGreaterThan(0);
+    for (const connector of chrome) {
+      expect(connector, id).toMatchObject({ radius: '0px', shadow: 'none', background: 'rgba(0, 0, 0, 0)', border: '0px', outline: 'none', glyph: '32px' });
+      expect(connector.color, 'the arrow keeps the accent colour').toBe(connector.accent);
+    }
+  }
+});
+
+for (const [width, height] of [[1280, 720], [1920, 1080]]) {
+  test(`flow arrows stay centred in the gap after a real auto-animate transition at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await ready(page);
+    await jump(page, 'animate-a-model');
+    for (let step = 0; step < 3; step++) {
+      await page.keyboard.press('Space');
+      await settleMotion(page);
+    }
+    await expect(page.locator('#animate-add-cache')).toHaveClass(/present/);
+    await expect.poll(async () => worstOffset(await connectorOffsets(page, 'animate-add-cache')), { message: 'the carried-over arrow must be re-centred once the move ends' }).toBeLessThanOrEqual(1);
+    for (let step = 0; step < 2; step++) {
+      await page.keyboard.press('Space');
+      await settleMotion(page);
+    }
+    await expect.poll(async () => (await connectorOffsets(page, 'animate-add-cache')).length).toBe(2);
+    await expect.poll(async () => worstOffset(await connectorOffsets(page, 'animate-add-cache'))).toBeLessThanOrEqual(1);
+  });
+}
+
+test('flow arrows stay centred and point down when the cards stack on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ready(page);
+  await jump(page, 'animate-a-model');
+  for (let step = 0; step < 3; step++) {
+    await page.locator('#next').click();
+    await settleMotion(page);
+  }
+  await expect(page.locator('#animate-add-cache')).toHaveClass(/present/);
+  for (let step = 0; step < 2; step++) {
+    await page.locator('#next').click();
+    await settleMotion(page);
+  }
+  await expect.poll(async () => (await connectorOffsets(page, 'animate-add-cache')).length).toBe(2);
+  await expect.poll(async () => worstOffset(await connectorOffsets(page, 'animate-add-cache'))).toBeLessThanOrEqual(1);
+  const stacked = await connectorOffsets(page, 'animate-add-cache');
+  expect(stacked.every((offset) => offset.stacked && offset.glyph === '90deg')).toBe(true);
+});
+
+test('reading mode shows every flow arrow, centred', async ({ page }) => {
+  await ready(page, '?mode=read');
+  for (const id of ['model-to-observation', 'animate-a-model', 'animate-add-cache']) {
+    const offsets = await connectorOffsets(page, id);
+    expect(offsets.length, id).toBeGreaterThan(0);
+    expect(worstOffset(offsets), id).toBeLessThanOrEqual(1);
+    const hidden = await page.locator(`#${id} .diagram-connector`).evaluateAll((nodes) => nodes.filter((node) => getComputedStyle(node).opacity !== '1').length);
+    expect(hidden, `${id}: reading mode must not wait for a reveal`).toBe(0);
+  }
 });
