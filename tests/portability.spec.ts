@@ -40,7 +40,7 @@ for (const base of ['/', '/another-name/']) {
       }));
       await page.route(/\/assets\/slides-[^/]+\.md$/, (route) => route.fulfill({
         contentType: 'text/markdown',
-        body: `${exampleMarkdown}\n---\n## Python on Pages\n\n\`\`\`py\nprint("portable")\n\`\`\`\n\n---\n## Rust on Pages\n\n\`\`\`rs\nfn main() { println!("portable"); }\n\`\`\`\n\n---\n## SQL on Pages\n\n\`\`\`sql\nSELECT title FROM talks;\n\`\`\`\n\n---\n## Rich model on Pages\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="portable-preset" class="layout-split" -->\n## Portable evidence\n<div class="layout-copy"><p>Content stays in Markdown.</p><p><span data-icon="rocket"></span> Launch <span data-icon="copilot-48"></span> Copilot</p></div>\n<figure class="layout-visual"><img src="brand/aspire-icon-256.svg" alt="Official Aspire mark"><figcaption class="layout-caption">A visible caption.</figcaption></figure>\n`,
+        body: `${exampleMarkdown}\n---\n## Python on Pages\n\n\`\`\`py\nprint("portable")\n\`\`\`\n\n---\n## Rust on Pages\n\n\`\`\`rs\nfn main() { println!("portable"); }\n\`\`\`\n\n---\n## SQL on Pages\n\n\`\`\`sql\nSELECT title FROM talks;\n\`\`\`\n\n---\n## Rich model on Pages\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="portable-preset" class="layout-split" -->\n## Portable evidence\n<div class="layout-copy"><p>Content stays in Markdown.</p><p><span data-icon="rocket"></span> Launch <span data-icon="copilot-48"></span> Copilot</p></div>\n<figure class="layout-visual"><img src="brand/aspire-icon-256.svg" alt="Official Aspire mark"><figcaption class="layout-caption">A visible caption.</figcaption></figure>\n\n---\n<!-- .slide: id="portable-steps" -->\n## Steps on Pages\n\n\`\`\`typescript [1|2]\nconst first = 1;\nconst second = 2;\n\`\`\`\n\n---\n<!-- .slide: id="portable-terminal" -->\n## Terminal on Pages\n\n\`\`\`bash\nnode -p "1 + 1"\n\`\`\`\n<!-- .element: data-terminal="Recorded example" -->\n\n\`\`\`text\n2\n\`\`\`\n`,
       }));
       const response = await page.goto(`${origin}${base}?mode=present`);
       const html = await response!.text();
@@ -90,6 +90,20 @@ for (const base of ['/', '/another-name/']) {
       await page.locator('#slide-list [data-slide="code-example"]').click();
       const codeFonts = await paintedFonts(page, '#code-example pre code');
       expect(codeFonts.every((font) => font.isCustomFont && font.postScriptName.startsWith('FiraCode'))).toBe(true);
+      // The new patterns run from the production bundle, under the same base path, with lazily loaded grammars.
+      await page.locator('#menu-toggle').click();
+      await page.locator('#slide-list [data-slide="portable-steps"]').click();
+      await expect(page.locator('#portable-steps .is-focused')).toHaveAttribute('data-line', '1');
+      await page.keyboard.press('Space');
+      await expect(page.locator('#portable-steps .is-focused')).toHaveAttribute('data-line', '2');
+      await expect(page.locator('#portable-steps code[data-language="typescript"] span.hljs-keyword').first()).toBeVisible();
+      await page.locator('#menu-toggle').click();
+      await page.locator('#slide-list [data-slide="portable-terminal"]').click();
+      await expect(page.locator('#portable-terminal .terminal-response')).not.toHaveClass(/visible/);
+      await page.keyboard.press('Space');
+      await expect(page.locator('#portable-terminal .terminal-response')).toHaveClass(/visible/);
+      await expect(page.locator('#portable-terminal .terminal-output code')).toHaveText('2');
+      await expect(page.locator('#portable-terminal .terminal-label')).toHaveText('Recorded example');
       await page.locator('#menu-toggle').click();
       const last = await page.locator('#slide-list a').last().getAttribute('data-slide');
       await page.locator('#slide-list a').last().click();

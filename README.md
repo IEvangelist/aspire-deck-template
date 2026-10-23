@@ -4,6 +4,8 @@ A deck-only, Markdown-first [reveal.js](https://revealjs.com/) template in the
 official Aspire visual identity. Configurable introduction, self-hosted Poppins
 for prose and Fira Code for code,
 light/dark themes, speaker notes, reading mode, code copy, and PDF export.
+Teach with step-by-step highlighted code lines, side-by-side code, and a
+reveal-on-click command with its recorded output, all from plain Markdown.
 Editable diagram, fragment, auto-animate, and `apphost.mts` reference slides
 demonstrate the reusable shell. The reference is displayed code, not an app.
 No demo app, .NET SDK, Docker, or Aspire runtime.
@@ -152,7 +154,8 @@ no all-language upfront bundle or external CDN. Unlabeled fences are plaintext;
 an unknown label produces an actionable error. Copy preserves the original code, not its visual
 wrapping. Add `data-wrap="false"` with a `.element` comment on a code block
 when you need horizontal scrolling. Only the code body scrolls; its caption
-and copy button stay fixed.
+and copy button stay fixed. To walk through lines, show two files together, or
+reveal a command's output, see [Teach with code](#teach-with-code).
 
 Use base-relative image paths like `assets/image.webp`, rather than
 hardcoding a repository URL. Keep one idea on a slide; split long material
@@ -200,6 +203,114 @@ Columns stack in DOM order for reading/compact modes; typography remains
 legible rather than scaling the columns down. Code stays left-aligned and
 copyable, even in a centered statement. Use `accent` selectively, not on every
 paragraph. `layout-caption` is secondary supporting copy, not hidden content.
+
+### Teach with code
+
+Three optional patterns build on ordinary fenced code. They are native Markdown
+and Reveal fragments, so Next, Back, `#/slide-id/N` links, the fragment counter,
+overview, reading mode, print, and reduced motion behave as they do everywhere
+else. Nothing here needs a TypeScript edit.
+
+**Step through the lines.** Put a bracketed list right after the language, with
+a space between them. Each `|` is one Next; `,` and `-` pick lines within a
+step. Numbers count from the first line of the block.
+
+````markdown
+```typescript [1|3|4-5|7]
+import { createBuilder } from "./.aspire/modules/aspire.mjs";
+
+const builder = await createBuilder();
+const api = await builder.addNodeApp("api", "./api", "src/index.ts")
+  .withHttpEndpoint({ env: "PORT" });
+await builder.build().run();
+```
+<!-- .element: data-caption="apphost.mts" -->
+````
+
+- The first step is highlighted when the slide opens. Each Next moves the
+  highlight, and each Back returns it. `[2]` is one permanent highlight, `[]`
+  shows line numbers with no highlight, and `[40: 1-2|3]` starts the displayed
+  numbers at 40 while the lists still count from the first line.
+- Highlighting and numbers are visual only. Selecting, **Copy**, and print keep
+  the exact source; the code is never reformatted, and blank lines survive.
+- A long block scrolls inside its own body to keep the highlighted lines in
+  view while the caption and Copy stay fixed.
+- Reading mode, print, and reduced motion show the complete code without the
+  step highlight.
+- Steps are fragments, so they advance in document order with the other
+  fragments on the slide. A list outside the block (`[1-9]` on five lines) or
+  with a stray character stops the load with the slide id and the problem.
+
+**Put code side by side.** Reuse `layout-split`. Two `layout-visual` groups
+share equal columns. One `layout-copy` beside one `layout-visual` puts an
+explanation next to code. Leave a blank line after the opening `<div>` and
+before the closing `</div>` so the Markdown inside renders. Do not use nested
+`<section>` elements for columns.
+
+````markdown
+<!-- .slide: id="before-after" class="layout-split" -->
+## Two files, **side by side**
+
+<div class="layout-visual">
+
+```typescript
+const port = 5000;
+app.listen(port);
+```
+<!-- .element: data-caption="before.ts" -->
+
+</div>
+
+<div class="layout-visual">
+
+```typescript
+const port = env.PORT;
+app.listen(port);
+```
+<!-- .element: data-caption="after.ts" -->
+
+</div>
+````
+
+Keep each excerpt short. Long lines wrap inside the panel rather than shrinking
+the type, and each panel keeps its fixed caption, Copy, and single scrolling
+body. Visual order follows document order. The columns stack in the same order
+on narrow screens and in reading mode.
+
+**Reveal a command, then its output.** Put the command and its complete output
+in two adjacent fences. Mark the command with `data-terminal` and a value.
+
+````markdown
+```bash
+node -p "JSON.stringify({ web: 8000 }, null, 2)"
+```
+<!-- .element: data-terminal="Recorded example" data-caption="Terminal" -->
+
+```json
+{
+  "web": 8000
+}
+```
+````
+
+- The slide opens with the command alone. One Next expands the complete output
+  in a short, bounded motion; the next Next moves on, and Back collapses it.
+  The output is a native fragment, so `#/slide-id/0` shows it and rapid input,
+  theme changes, resizing, and jumps always settle to the real state.
+- The value of `data-terminal` is the visible label. Use short, true text such
+  as `Recorded example` or `Recorded with Node 22 on 2026-10-23`. It is always
+  shown, so a static page never claims the command just ran. `data-caption`
+  names the window (default `Terminal`).
+- **Copy** copies the command without its `$` prompt. The output is exact,
+  selectable text. Only the output body scrolls, up to a capped height; the
+  header and command stay fixed. Reading mode and print show the whole output.
+- Paste the real, complete output of the command and do not edit it. Output
+  labeled `json` must be valid, complete JSON. A command that asks for JSON
+  (`--json`, `--format json`, `--output json`, `--output=json`, `-o json`, in any
+  letter case) needs a `json` output.
+  A missing, empty, or incomplete output stops the load with the slide id.
+- There is no autoplay, typing animation, or live shell. Nothing runs on the
+  page: the starter's example is a real Node 22 capture, labeled as recorded.
 
 ### Design components
 
@@ -384,8 +495,9 @@ npm run preview
 On a new machine, install the test browser once with
 `npx playwright install chromium` (Linux may need `--with-deps`).
 Tests cover authoring, optional and invalid config, keyboard/menu navigation,
-notes, fragments, copying, accessibility, geometry, and root/renamed-path
-production builds. No app or infrastructure is started.
+notes, fragments, copying, code steps and terminal output, accessibility,
+geometry, and root/renamed-path production builds. No app or infrastructure
+is started.
 
 For a non-Pages static host, set `PAGES_BASE_PATH` at build time to its path
 (default `/`). Optionally set `PAGES_URL` to the site's full URL for canonical

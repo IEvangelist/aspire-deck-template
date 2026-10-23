@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { jump, ready, renderedIds, settleMotion } from './helpers';
 
 type Exposure = { boxes: string[]; arrows: string[] };
+// Native fragments on slides that are not diagrams: bullet reveals, stepped code lines, and the terminal output.
+const plainFragments: Record<string, number> = { 'reveal-the-story': 3, 'apphost-example': 4, 'run-and-reveal': 1 };
 const states: Record<string, Exposure[]> = {
   'rich-architecture': [
     { boxes: ['model'], arrows: [] },
@@ -96,7 +98,7 @@ for (const scene of [
         expect(count).toBe(expected.length - 1);
         expect(await exposure(page, id), `${id} initial`).toEqual(expected[0]);
       } else {
-        expect(count).toBe(id === 'reveal-the-story' ? 3 : 0);
+        expect(count).toBe(plainFragments[id] ?? 0);
       }
       for (let step = 1; step <= count; step++) {
         await page.locator('#next').click();
@@ -213,7 +215,10 @@ test('named and numeric fragment deep links, reload and history restore exact ex
   await page.goBack();
   await settleMotion(page);
   expect(await exposure(page, 'rich-architecture')).toEqual(states['rich-architecture'][3]);
-  await page.goto('?mode=present#/5/0/0');
+  // Reveal's numeric hash is positional (#/slide/vertical/fragment), so derive the index instead of hard-coding it.
+  const position = (await renderedIds(page)).indexOf('rich-architecture');
+  expect(position).toBeGreaterThan(0);
+  await page.goto(`?mode=present#/${position}/0/0`);
   await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');
   await settleMotion(page);
   expect(await exposure(page, 'rich-architecture')).toEqual(states['rich-architecture'][1]);

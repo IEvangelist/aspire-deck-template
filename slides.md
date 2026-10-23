@@ -82,25 +82,85 @@ or Aspire CLI is required.
 <!-- .slide: id="apphost-example" data-kicker="Reference" -->
 ## A small **AppHost**
 
-```typescript
+```typescript [1|3|4-5|6|7]
 import { createBuilder } from "./.aspire/modules/aspire.mjs";
 
 const builder = await createBuilder();
 const api = await builder.addNodeApp("api", "./api", "src/index.ts")
   .withHttpEndpoint({ env: "PORT" });
 await builder.addViteApp("web", "./web").withReference(api).waitFor(api);
-
 await builder.build().run();
 ```
 <!-- .element: data-caption="apphost.mts | reference only" -->
 
-An [official-guide](https://aspire.dev/get-started/first-app.md) reference:
+Advance to walk through the highlighted lines. An [official-guide](https://aspire.dev/get-started/first-app.md) reference:
 the app folders and generated modules belong to a separate Aspire app.
 <!-- .element: class="source-line" -->
 
 Note:
 This is a slide example, not a runnable app included with this template.
 The reference models an API, a frontend, and the dependency between them.
+To step through your own code, add line steps after the language, such as
+`[1|3-5|7]`. Each Next moves the highlighted lines; Back returns.
+
+---
+
+<!-- .slide: id="compare-code" class="layout-split" data-kicker="Compare" -->
+## Two files, **side by side**
+
+<div class="layout-visual">
+
+```typescript
+const port = 5000;
+app.listen(port);
+```
+<!-- .element: data-caption="before.ts" -->
+
+</div>
+
+<div class="layout-visual">
+
+```typescript
+const port = env.PORT;
+app.listen(port);
+```
+<!-- .element: data-caption="after.ts" -->
+
+</div>
+
+Two `layout-visual` groups share equal columns. Put a `layout-copy` group beside one for an explanation.
+<!-- .element: class="source-line" -->
+
+Note:
+Each group holds an ordinary fenced code block, so syntax highlighting, Copy,
+and the single scrolling body all keep working. The groups stack in reading
+order on narrow screens and in reading mode.
+
+---
+
+<!-- .slide: id="run-and-reveal" data-kicker="Terminal" -->
+## Run it, then **reveal** the result
+
+```bash
+node -p "JSON.stringify({ web: 8000, api: 8001, cache: 8002 }, null, 2)"
+```
+<!-- .element: data-terminal="Recorded example" data-caption="Terminal" -->
+
+```json
+{
+  "web": 8000,
+  "api": 8001,
+  "cache": 8002
+}
+```
+
+Recorded with Node 22 on 2026-10-23; the output is pasted exactly as printed. Advance once to reveal it.
+<!-- .element: class="source-line" -->
+
+Note:
+Nothing runs on this page. The command was run once and its complete output
+pasted here, so the label stays on screen. Replace both with your own
+capture. Output labeled json must be complete, valid JSON.
 
 ---
 

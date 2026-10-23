@@ -91,6 +91,8 @@ Use three optional compositions, not a new visual system or a card grid:
 - `layout-split`: a Markdown heading followed by explicit `layout-copy` and
   `layout-visual` groups. Use a `div` for copy and a `figure` with an image and
   `layout-caption` for evidence. Give the visual real space and useful alt text.
+  Two `layout-visual` groups share equal columns, and a `layout-visual` `div`
+  can hold a fenced code block: that is the side-by-side code pattern below.
 - `layout-comparison`: a Markdown heading, then `comparison-columns` with two
   `comparison-panel` divs containing genuinely comparable headings/content.
 
@@ -244,6 +246,47 @@ Only the code body scrolls under its fixed caption/copy control.
 Add `Note:` or `Notes:` at the start of a line for presenter notes. Notes are
 hidden from the audience view but **publicly served with the Markdown** on a
 public static site. They are not confidential; include no credentials or secrets.
+
+### Stepped code lines
+
+Put a bracketed list after the language, with a space before the bracket:
+`typescript [1|3|4-5|7]`. Each `|` is one native fragment, so Next, Back,
+`#/slide-id/N`, the counter, and fragment order with bullets all work. Lists
+count from the block's first line. `[2]` is permanent emphasis, `[]` shows
+numbers only, and `[40: 1-2|3]` renumbers the display. Highlighting and numbers
+are generated visuals: never insert them into the code, reformat the source, or
+describe them as code text. Copy and print stay exact. Reading mode, print, and
+reduced motion show neutral complete code. An out-of-range or malformed list
+fails visibly with the slide id. An excerpt of up to about eight lines fits
+without scrolling; a longer block scrolls inside its own body to the
+highlighted lines, under the fixed caption and Copy.
+
+### Side-by-side code
+
+Use `layout-split` with two `layout-visual` groups for equal code columns, or a
+`layout-copy` beside a `layout-visual` for explanation and code. Leave a blank
+line after each opening `<div>` and before its closing tag so the fenced code
+renders. Keep excerpts short; lines wrap, type never shrinks, and the panels
+stack in document order on narrow, compact, and reading views. Never use nested
+`section` tags.
+
+### Recorded terminal output
+
+Write the command and its complete output as two adjacent fences. Put
+`<!-- .element: data-terminal="Recorded example" data-caption="Terminal" -->`
+under the command; always give `data-terminal` a value, because it is the
+always-visible label. The output is one native fragment: the slide opens with
+the command alone, one Next expands the output, the next Next moves on, and
+Back collapses it. Copy takes the command without its `$` prompt, and only the
+capped output body scrolls. Reading, print, and reduced motion show everything.
+
+Only paste real, complete output. Run the command once, copy what it printed,
+and say where it came from in the label (for example `Recorded with Node 22 on
+2026-10-23`). Do not invent output, timings, or results, and do not present a
+recording as a live run. Output labeled `json`, or any output for a command with
+`--json`, `--format json`, `--output json`, or `-o json` (any letter case), must
+be complete valid JSON; a missing, empty, or incomplete output fails visibly.
+Never add autoplay, fake typing, a live shell, or a visible status row.
 
 ## Check and publish
 

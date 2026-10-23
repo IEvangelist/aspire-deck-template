@@ -13,7 +13,7 @@ import configUrl from '../deck.config.json?url&no-inline';
 import markdownUrl from '../slides.md?url&no-inline';
 import diagramsUrl from '../diagrams.json?url&no-inline';
 import { assetUrl, description, parseDeckJson, type DeckConfig } from './config';
-import { prepareCode, preloadCodeLanguages } from './code';
+import { prepareCode, preloadCodeLanguages, syncCodeFocus } from './code';
 import { iconElement, loadIcons, renderIcons } from './icons';
 import { iconAliases } from './icon-names';
 import { parseDiagramJson } from './diagram-config';
@@ -202,6 +202,7 @@ function synchronize() {
     else link.removeAttribute('aria-current');
   }
   document.documentElement.style.setProperty('--slide-scale', String(naturalLayout() ? 1 : deck.getScale()));
+  syncCodeFocus(current, staticMode());
 }
 
 function targetFor(hash: string): HTMLElement | undefined {
@@ -251,9 +252,15 @@ function finishReveals(slide: HTMLElement, selector = '.fragment') {
   }
 }
 
-function showCurrentStep() {
+// A stepped code block has zero-size markers, so the line it focuses is what should stay in view.
+function stepTarget(node: Element): Element | null {
+  return node.matches('.code-step') ? node.closest('.code-panel')?.querySelector('.is-focused') ?? null : node;
+}
+
+function scrollToCurrentStep() {
   if (staticMode()) return;
-  const candidates = [...current.querySelectorAll('.current-fragment')].filter((node) => {
+  const candidates = [...current.querySelectorAll('.current-fragment')].map(stepTarget).filter((node): node is Element => {
+    if (!node) return false;
     const bounds = node.getBoundingClientRect();
     return bounds.width > 0 && bounds.height > 0 && getComputedStyle(node).visibility !== 'hidden';
   });
@@ -267,6 +274,14 @@ function showCurrentStep() {
   if (bounds.top < frame.top + 16 || bounds.bottom > frame.bottom - 16) {
     scroller.scrollTo({ top: scroller.scrollTop + bounds.top - frame.top - 24, behavior: 'instant' });
   }
+}
+
+// A terminal output expands over a short transition, so check the viewport again once it has its final height.
+function showCurrentStep() {
+  scrollToCurrentStep();
+  const running = [...current.querySelectorAll('.current-fragment')].flatMap((node) => node.getAnimations({ subtree: true }))
+    .filter((animation) => animation.playState === 'running' && Number.isFinite(animation.effect?.getComputedTiming().endTime));
+  if (running.length) void Promise.allSettled(running.map((animation) => animation.finished)).then(scrollToCurrentStep);
 }
 
 function goTo(slide: HTMLElement, fragment = -1) {

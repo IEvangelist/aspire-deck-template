@@ -29,6 +29,7 @@
   --code-line: rgb(229 226 244 / 0.16);
   --code-button: rgb(185 170 238 / 0.08);
   --code-hover: rgb(185 170 238 / 0.16);
+  --code-focus: #3b3159;
   --syntax-keyword: #c4b4ff;
   --syntax-string: #8ed8b9;
   --syntax-number: #f4c78b;
@@ -277,7 +278,7 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .reveal .feature-list > li::before { content: counter(feature, decimal-leading-zero); top: 40px; left: 0; width: auto; height: auto; border-radius: 0; background: none; color: var(--accent); font: 600 20px/1 var(--font-code); letter-spacing: 0.1em; }
 
 /* Windows: code and diagrams share one chrome. */
-.reveal .code-panel { display: flex; flex-direction: column; min-width: 0; margin-top: 28px; border: 1px solid var(--code-line); border-radius: var(--radius-panel); background: var(--code); box-shadow: var(--shadow-window); }
+.reveal .code-panel { position: relative; display: flex; flex-direction: column; min-width: 0; margin-top: 28px; border: 1px solid var(--code-line); border-radius: var(--radius-panel); background: var(--code); box-shadow: var(--shadow-window); }
 .reveal .code-panel figcaption { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 8px 12px 8px 18px; border-bottom: 1px solid var(--code-line); border-radius: var(--radius-panel) var(--radius-panel) 0 0; background: var(--code-chrome); font-size: 18px; line-height: 1.4; color: var(--code-muted); }
 .reveal .code-panel figcaption::before, .window-dots {
   content: '';
@@ -294,11 +295,20 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .copy-code { min-height: max(44px, calc(44px / var(--slide-scale, 1))); min-width: max(60px, calc(60px / var(--slide-scale, 1))); background: var(--code-button); color: var(--code-ink); border-color: var(--code-line); font-size: 16px; flex-shrink: 0; }
 .copy-code:hover:not(:disabled) { background: var(--code-hover); border-color: var(--code-line); }
 .copy-code:focus-visible { outline-color: var(--syntax-keyword); }
-.reveal pre { width: 100%; min-height: 0; max-height: 360px; margin: 0; padding: 20px 24px; border-radius: 0 0 var(--radius-panel) var(--radius-panel); background: var(--code); color: var(--code-ink); box-shadow: none; font: 24px/1.5 var(--font-code); text-align: left; overflow: auto; }
+.reveal pre { position: relative; width: 100%; min-height: 0; max-height: 360px; margin: 0; padding: 20px 24px; border-radius: 0 0 var(--radius-panel) var(--radius-panel); background: var(--code); color: var(--code-ink); box-shadow: none; font: 24px/1.5 var(--font-code); text-align: left; overflow: auto; }
 .reveal pre::-webkit-scrollbar-thumb { background: rgb(229 226 244 / 0.34); background-clip: content-box; }
 .reveal pre::-webkit-scrollbar-thumb:hover { background: rgb(229 226 244 / 0.6); background-clip: content-box; }
-.reveal pre code { display: block; max-height: none; margin: 0; padding: 0; overflow: visible; background: none; color: inherit; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
-.reveal pre[data-wrap='false'] code { white-space: pre; overflow-wrap: normal; }
+/* Each source line is its own block, so the line wrapper (not the code element) owns wrapping. The newline stays a
+   text node between lines, which keeps textContent, selection and Copy identical to the authored source. */
+.reveal pre code { display: block; max-height: none; margin: 0; padding: 0; overflow: visible; background: none; color: inherit; font: inherit; white-space: normal; overflow-wrap: anywhere; }
+.reveal .code-line { position: relative; display: block; min-height: 1.5em; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; transition: background-color var(--motion-fast) var(--motion-ease); }
+.reveal pre[data-wrap='false'] .code-line { width: max-content; min-width: 100%; white-space: pre; overflow-wrap: normal; }
+.reveal .code-line.is-focused { background: var(--code-focus); }
+/* Line numbers are generated content: they never enter textContent, selection or Copy. */
+.reveal pre code[data-line-numbers] .code-line { padding-left: 3em; }
+.reveal pre code[data-line-numbers] .code-line::before { content: attr(data-line); content: attr(data-line) / ''; position: absolute; top: 0; left: 0; width: 2.6em; color: var(--syntax-comment); font-size: 0.78em; font-variant-numeric: tabular-nums; line-height: calc(1.5 / 0.78); text-align: right; user-select: none; }
+/* Hidden native fragments that advance the focused lines; they take no space and are not announced. */
+.code-step { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
 .reveal pre, .reveal pre code, .reveal .code-panel figcaption { text-align: left; }
 .hljs-keyword, .hljs-selector-tag, .hljs-meta, .hljs-built_in { color: var(--syntax-keyword); }
 .hljs-string, .hljs-regexp { color: var(--syntax-string); }
@@ -307,6 +317,21 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .hljs-comment, .hljs-doctag { color: var(--syntax-comment); }
 .hljs-type, .hljs-symbol, .hljs-bullet, .hljs-selector-class { color: var(--syntax-attribute); }
 .hljs-punctuation, .hljs-subst { color: var(--code-ink); }
+
+/* Terminal: the header and command stay fixed; the output is a native fragment that expands on Next, then scrolls on its own. */
+.reveal .terminal-panel { overflow: hidden; }
+.reveal .terminal-panel pre { border-radius: 0; }
+.reveal .terminal-panel figcaption > span { flex-wrap: wrap; row-gap: 4px; }
+.terminal-label { padding: 1px 10px; border: 1px solid var(--code-line); border-radius: 999px; color: var(--code-muted); font: 500 16px/1.5 var(--font-prose); white-space: nowrap; }
+.terminal-command-line { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; background: var(--code); }
+.terminal-prompt { padding: 20px 0 0 24px; color: var(--syntax-keyword); font: 24px/1.5 var(--font-code); user-select: none; }
+.reveal pre.terminal-command { max-height: none; padding-left: 12px; overflow: visible; }
+.reveal pre.terminal-output { max-height: 300px; border-top: 1px solid var(--code-line); }
+.reveal pre.terminal-output:focus-visible { outline-color: var(--syntax-keyword); outline-offset: -4px; }
+.reveal .terminal-response { display: grid; grid-template-rows: 1fr; }
+.terminal-clip { min-height: 0; overflow: hidden; }
+:root:not([data-static='true']) .reveal .terminal-response { transition: grid-template-rows 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out, visibility 280ms; }
+:root:not([data-static='true']) .reveal .terminal-response.fragment:not(.visible) { grid-template-rows: 0fr; }
 
 /* Cards: an optional row of equal peers. Each card takes an icon, a title and a short sentence. */
 .reveal .card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; margin-top: 40px; }
@@ -322,17 +347,17 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .reveal .layout-statement .slide-content > h2 { max-width: 20ch; font-size: 78px; line-height: 1.25; }
 .reveal .layout-support { max-width: 38ch; font-size: 32px; color: var(--secondary); }
 .reveal .layout-split .slide-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px 56px; align-items: center; }
-.reveal .layout-split .slide-content > :is(.slide-kicker, h2) { grid-column: 1 / -1; }
+/* Copy and visual groups sit side by side in document order; everything else (kicker, heading, caption, notes line) spans. */
+.reveal .layout-split .slide-content > :not(.layout-copy):not(.layout-visual) { grid-column: 1 / -1; }
 .reveal .layout-split .slide-content > h2 { margin-bottom: 0; }
 .layout-copy, .layout-visual { min-width: 0; }
-.layout-copy { grid-column: 1; }
-.layout-visual { grid-column: 2; grid-row: 3; }
+/* Two visuals, such as two code panels, take equal columns with their tops aligned. */
+:root:not([data-reading='true']):not([data-compact='true']) .reveal .layout-split .slide-content:has(> .layout-visual ~ .layout-visual) { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 .reveal .layout-visual { margin: 0; }
 .reveal .layout-visual .code-panel { margin-top: 0; }
 .reveal figure.layout-visual { display: grid; justify-items: center; gap: 16px; padding: 32px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface-strong); box-shadow: var(--shadow-card); }
 .reveal .layout-visual img { display: block; width: min(100%, 320px); max-height: 380px; margin-inline: auto; filter: drop-shadow(0 20px 32px rgb(81 43 212 / 0.3)); }
 .reveal .layout-caption { margin: 0; font-size: 20px; line-height: 1.5; color: var(--secondary); text-align: center; }
-.reveal .layout-split .slide-content > .layout-caption { grid-column: 1 / -1; }
 .reveal .layout-comparison .comparison-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-top: 36px; }
 .comparison-panel { min-width: 0; min-height: 240px; padding: 36px; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--surface-strong); box-shadow: var(--shadow-card); }
 .comparison-panel.is-featured { border-color: var(--accent-line); background-image: linear-gradient(var(--accent-soft), var(--accent-soft)); }
@@ -506,6 +531,10 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal .presenter-links a { font-size: 18px; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal pre { padding: 16px; font-size: 17px; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal .code-panel figcaption { padding: 8px 12px; gap: 10px; font-size: 15px; }
+  /* A phone leaves too little room for the title and the always-visible label beside Copy, so the title takes its own row. */
+  .reveal .terminal-panel figcaption { grid-template-columns: minmax(0, 1fr) auto; }
+  .reveal .terminal-panel figcaption > span { grid-column: 1 / -1; grid-row: 2; }
+  .reveal .terminal-panel figcaption .copy-code { grid-column: 2; grid-row: 1; }
     :root:is([data-reading='true'], [data-compact='true']) .reveal .card, :root:is([data-reading='true'], [data-compact='true']) .reveal .diagram-node, :root:is([data-reading='true'], [data-compact='true']) .reveal .comparison-panel { padding: 20px; }
   :root:is([data-reading='true'], [data-compact='true']) .diagram-body { padding: 16px; }
   :root[data-reading='true'] .reveal table { font-size: 16px; }
@@ -552,6 +581,7 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
     --code-ink: #1f1e33;
     --code-muted: #514a68;
     --code-line: #c8bee6;
+    --code-focus: #ddd5f5;
     --inline-code: #e9e4f5;
     --syntax-keyword: #512bd4;
     --syntax-string: #146449;
@@ -568,7 +598,8 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
   .reveal .slide-image, .reveal .layout-visual img { filter: none; }
   .diagram-body { background-image: none; }
   .slide-viewport { height: auto; overflow: visible; }
-  .reveal pre { max-height: none; overflow: visible; }
+  .reveal pre, .reveal pre.terminal-output { max-height: none; overflow: visible; }
+  .reveal .terminal-response { grid-template-rows: 1fr !important; }
   .layout-split .architecture-mobile { max-height: none !important; overflow: visible !important; }
   .reveal .fragment { opacity: 1 !important; visibility: visible !important; transform: none !important; }
   .reveal a { color: inherit; }

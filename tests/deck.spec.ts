@@ -268,5 +268,5 @@ test('unlabeled fences remain honest plaintext', async ({ page }) => {
   await ready(page);
   await page.locator('#start-presentation').click();
   await expect(page.locator('section.present pre code')).toHaveText('not a programming language');
-  await expect(page.locator('section.present pre code span')).toHaveCount(0);
+  await expect(page.locator('section.present pre code span:not(.code-line)')).toHaveCount(0);
 });
