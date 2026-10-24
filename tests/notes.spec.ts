@@ -19,8 +19,9 @@ async function openSpeakerView(page: Page, how: 'key' | 'menu' = 'key') {
 
 async function previewFrame(view: Page, selector: string): Promise<Frame> {
   await expect(view.locator(selector)).toHaveCount(1, { timeout: 20_000 });
-  // The popup sees a preview's finished document even when that preview navigates late or reloads.
-  await view.waitForFunction((css) => document.querySelector<HTMLIFrameElement>(css)?.contentDocument?.documentElement.dataset.deckReady === 'true', selector, { timeout: 30_000 });
+  // The popup sees a preview's finished document even when that preview navigates late or reloads. A navigating
+  // iframe briefly has a document with no root element yet, so a slow origin must not make this wait throw.
+  await view.waitForFunction((css) => document.querySelector<HTMLIFrameElement>(css)?.contentDocument?.documentElement?.dataset.deckReady === 'true', selector, { timeout: 30_000 });
   const frame = await (await view.locator(selector).elementHandle())!.contentFrame();
   if (!frame) throw new Error(`The ${selector} preview has no document.`);
   return frame;
