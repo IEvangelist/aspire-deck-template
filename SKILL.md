@@ -11,7 +11,8 @@ Aspire identity, readable slide geometry, and deck-only scope.
 ## Authoring surface
 
 - `deck.config.json`: title, subtitle, summary, presenter, optional avatar/event,
-  and an arbitrary ordered list of labeled links.
+  an arbitrary ordered list of labeled links, optional slide `transition`
+  defaults with named `chapters`, and an optional `social` link-preview block.
 - `slides.md`: all authored slides and presenter notes.
 - `diagrams.json`: named reusable rich SVG graph definitions; `{}` is valid.
 - `public/assets/`: local images and other static media. Reference files as
@@ -20,6 +21,11 @@ Aspire identity, readable slide geometry, and deck-only scope.
 Do not repeat the generated introduction in Markdown. Omitting the avatar must
 produce a clean text-led presenter column, not an invented portrait. Use actual,
 appropriately licensed media with useful alt text.
+
+A copy of this template must not keep the starter's link preview: replace
+`public/assets/social-card.png` (a 1200 x 630 PNG) and every `social` field, or
+delete the `social` block. The card names this template and its author, never
+the presenter of a copy's talk.
 
 Do not add a runnable AppHost, API, Dockerfile, .NET SDK, Aspire CLI install,
 or other application to this template. `apphost.mts` in the starter deck is a
@@ -246,6 +252,36 @@ Only the code body scrolls under its fixed caption/copy control.
 Add `Note:` or `Notes:` at the start of a line for presenter notes. Notes are
 hidden from the audience view but **publicly served with the Markdown** on a
 public static site. They are not confidential; include no credentials or secrets.
+Give every new example a short `Cue:` line saying what to do or say. **S** (or
+Menu > Speaker notes) opens Reveal's own speaker view: current slide, what Next
+reveals, notes, clock, and timer. It needs pop-ups allowed; a blocked window is
+reported in the deck. Never build a custom presenter runtime or a notes layer.
+
+### Package and API legends
+
+Color-code which integration package owns each API with four attributes per
+color (`purple`, `cyan`, `pink`, `teal`), written as stacked native `.element`
+comments under the code block:
+
+````markdown
+```csharp
+var cache = builder.AddRedis("cache");
+```
+<!-- .element: data-pkg-pink="Aspire.Hosting.Redis" data-add-pink="redis" data-apis-pink="AddRedis" -->
+````
+
+`data-pkg-<color>` is the legend's package name, `data-add-<color>` is what follows
+`aspire add`, `data-apis-<color>` is required (exact identifiers, space
+separated), and `data-lines-<color>` is the optional rail (`4-6`, `1,3-4`;
+default: lines that use the APIs). Keep one color per package across the deck;
+the starter uses cyan `Aspire.Hosting.JavaScript`, pink `Aspire.Hosting.Redis`,
+teal `Aspire.Hosting.Go`, and purple for any other. Leave AppHost and language
+calls neutral. Legend, colors, and rails are visual only; Copy and selection
+keep the exact source. Only identifiers in the code are colored (never strings
+or comments); duplicates, overlaps, unknown colors, and out-of-range lines fail
+visibly. Go is a workload, not an AppHost language: show `main.go` as the
+service and `AppHost.cs` with `AddGoApp` (`Aspire.Hosting.Go`, `aspire add go`).
+Use only package names and APIs you have checked against the real packages.
 
 ### Stepped code lines
 
@@ -288,6 +324,36 @@ recording as a live run. Output labeled `json`, or any output for a command with
 be complete valid JSON; a missing, empty, or incomplete output fails visibly.
 Never add autoplay, fake typing, a live shell, or a visible status row.
 
+## Slide motion
+
+Moving between slides is Reveal's own transition system, set at three levels.
+The most specific wins: **deck < chapter < slide**. Add no animation library, and
+do not use the View Transitions API.
+
+- **Deck:** `transition` in `deck.config.json` with `style` (`none`, `fade`,
+  `slide`, `convex`, `concave`, `zoom`), `speed` (`default`, `fast`, `slow`), and
+  `background` (the same styles). A single style only. Omitted, the deck uses a
+  quiet `fade`, `fast`, and no background transition.
+- **Chapter:** a named set of the same three values under `chapters`, such as
+  `"code": { "style": "slide" }`. Start it on a slide with
+  `<!-- .slide: id="x" data-chapter="code" -->`; it covers that slide and the ones
+  after it until another `data-chapter`. `{}` returns to the deck default, a
+  chapter can begin again later, and an unused definition is harmless.
+- **Slide:** native attributes in the slide comment: `data-transition`,
+  `data-transition-speed`, `data-background-transition`. They always win, and
+  each setting resolves on its own.
+- A chapter or slide style may split entering from leaving with one `-in` and one
+  `-out` style from `fade`, `slide`, `convex`, `concave`, `zoom` (never `none`),
+  such as `data-transition="slide-in fade-out"`.
+- Chapters apply to slides, not to a vertical stack's wrapper: the move into or out
+  of a whole stack follows the deck default. Reveal's `fade` ignores speed, and one
+  slide cannot return to `default` speed under a `fast` or `slow` deck.
+- Reading mode, print, reduced motion, and the speaker view's previews never animate.
+  Authored attributes stay in place. An unsupported value, an incomplete pair, or
+  an undefined chapter fails visibly with the slide or field named.
+- Motion is for continuity: a quiet default, perhaps one chapter, an occasional
+  explicit slide. Do not animate every slide differently.
+
 ## Check and publish
 
 Use Node 22.12+ or 24 LTS. Run `npm ci`, then `npm run dev`. Do not use `file://`.
@@ -300,7 +366,11 @@ links and counts, Next/Back, notes, copy, reduced motion, and full-content print
 Check that media/fonts/Markdown/language modules still load under both `/` and
 a renamed project Pages path.
 Walk every slide forward and backward through every reveal, including the
-box/arrow boundaries and auto-animate pair. Check actual painted visibility
+box/arrow boundaries and auto-animate pair, and then actually leave the slide
+backward after rewinding every code step. Click Copy and a short code block and
+confirm the arrow keys still navigate. Open the speaker view mid-slide and
+confirm the audience does not move and both previews show this step and the next.
+Check actual painted visibility
 and in-progress/settled arrow drawing, not only fragment classes. Test rapid
 input, `#/slide-id/fragment-index` reload/history restoration, narrow scroll
 regions, and immediate complete static modes.

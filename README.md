@@ -3,10 +3,13 @@
 A deck-only, Markdown-first [reveal.js](https://revealjs.com/) template in the
 official Aspire visual identity. Configurable introduction, self-hosted Poppins
 for prose and Fira Code for code,
-light/dark themes, speaker notes, reading mode, code copy, and PDF export.
-Teach with step-by-step highlighted code lines, side-by-side code, and a
+light/dark themes, speaker notes with a real presenter view, reading mode, code
+copy, and PDF export. Slide transitions are configurable for the whole deck, a
+chapter, or one slide, and link previews come from one `social` block.
+Teach with step-by-step highlighted code lines, side-by-side code,
+color-coded package and API legends, and a
 reveal-on-click command with its recorded output, all from plain Markdown.
-Editable diagram, fragment, auto-animate, and `apphost.mts` reference slides
+Editable diagram, fragment, auto-animate, and `apphost.mts`, C#, and Go reference slides
 demonstrate the reusable shell. The reference is displayed code, not an app.
 No demo app, .NET SDK, Docker, or Aspire runtime.
 
@@ -46,7 +49,7 @@ future changes to this template do not automatically update your copy.
 
 | File | What to edit |
 | --- | --- |
-| `deck.config.json` | Talk title, subtitle/description, presenter, avatar, event, and ordered links |
+| `deck.config.json` | Talk title, subtitle/description, presenter, avatar, event, ordered links, slide transitions and chapters, and the share image |
 | `slides.md` | All content slides, including notes, fragments, code, and images |
 | `diagrams.json` | Optional named rich SVG graph definitions; `{}` disables unused definitions |
 | `public/assets/` | Your images and other static media |
@@ -104,6 +107,43 @@ URLs are rejected.
 
 Invalid configuration stops the build with the filename and field. A failed
 browser load shows a real error instead of a partially working deck.
+
+### Share previews
+
+The optional `social` block controls the preview shown when someone shares your
+deck's link (Open Graph and Twitter cards). The starter ships one for this
+template. **Replace it for your own deck.**
+
+```json
+"social": {
+  "image": "assets/social-card.png",
+  "alt": "Describe the image, including any text on it.",
+  "title": "Your talk title",
+  "description": "One sentence for link previews.",
+  "siteName": "Your event or site"
+}
+```
+
+- `image` and `alt` go together. `image` is a **PNG path relative to `public/`**:
+  1200 x 630 is ideal, 600 x 315 is the minimum, and the file must stay under
+  5 MB. The build reads the real width and height and publishes them with the
+  tags. A missing, non-PNG, or too small file stops the build with the field named.
+- `title`, `description`, and `siteName` are optional. Without them the preview
+  uses your top-level `title` and `description`, and no site name.
+- Image tags need an absolute URL, so they appear when the site URL is known: the
+  Pages workflow supplies it, and `PAGES_URL` does the same for another host.
+  Without it the page keeps a text-only `summary` card.
+- **A generated copy must replace the starter card.** It names this template and
+  its author. Replace `public/assets/social-card.png`, edit every `social`
+  field, or delete the `social` block for a text-only preview. The title slide
+  and presenter never read this block.
+
+This repository's **GitHub link preview** is a different, per-repository setting.
+Upload `.github/social-preview.png` (1280 x 640, under 1 MB) once: **Settings >
+Social preview > Edit > Upload an image**, as described in
+[Customizing your repository's social media preview](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/customizing-your-repositorys-social-media-preview).
+Committing the file does not set it. The site's own preview above is applied by
+the build and needs no extra step.
 
 ### Write slides in Markdown
 
@@ -206,7 +246,7 @@ paragraph. `layout-caption` is secondary supporting copy, not hidden content.
 
 ### Teach with code
 
-Three optional patterns build on ordinary fenced code. They are native Markdown
+Four optional patterns build on ordinary fenced code. They are native Markdown
 and Reveal fragments, so Next, Back, `#/slide-id/N` links, the fragment counter,
 overview, reading mode, print, and reduced motion behave as they do everywhere
 else. Nothing here needs a TypeScript edit.
@@ -312,6 +352,48 @@ node -p "JSON.stringify({ web: 8000 }, null, 2)"
 - There is no autoplay, typing animation, or live shell. Nothing runs on the
   page: the starter's example is a real Node 22 capture, labeled as recorded.
 
+**Color-code the packages behind the APIs.** Show which integration package
+owns each call: a legend above the code, bold colored API names, and a colored
+rail beside each statement. It is optional, visual only, and set with native
+attribute comments on the code block, one group of four attributes per color.
+
+````markdown
+```csharp
+var cache = builder.AddRedis("cache");
+var web = builder.AddViteApp("web", "./web")
+    .WithReference(cache);
+```
+<!-- .element: data-caption="AppHost.cs" -->
+<!-- .element: data-pkg-pink="Aspire.Hosting.Redis" data-add-pink="redis" data-apis-pink="AddRedis" -->
+<!-- .element: data-pkg-cyan="Aspire.Hosting.JavaScript" data-add-cyan="javascript" data-apis-cyan="AddViteApp" -->
+````
+
+| Attribute | Meaning |
+| --- | --- |
+| `data-pkg-<color>` | The package name shown in the legend, such as `Aspire.Hosting.Redis`. |
+| `data-add-<color>` | What follows `aspire add`, shown in the legend as `aspire add redis`. Give this, `data-pkg-<color>`, or both. |
+| `data-apis-<color>` | **Required.** The exact identifiers this package owns, separated by spaces. Only these are colored. |
+| `data-lines-<color>` | Optional rail lines such as `4-6` or `1,3-4`. By default the rail covers every line that uses one of the APIs. |
+
+The colors are `purple`, `cyan`, `pink`, and `teal`. The starter pairs each with
+one package (cyan `Aspire.Hosting.JavaScript`, pink `Aspire.Hosting.Redis`,
+teal `Aspire.Hosting.Go`) and keeps purple for any other, so a color means one
+package across the deck. Calls that belong to the AppHost itself or to the
+language stay neutral, which is what makes the colored ones stand out.
+
+- Names inside strings and comments are never colored. Selecting and **Copy**
+  keep the exact source: the legend, colors, and rails add no characters.
+- It combines with line steps (`[1|3|4-5]`), starting line numbers, and
+  side-by-side layouts. A band of highlighted lines rounds only its two ends.
+- Contrast stays at least 4.5:1 on the code window in both themes. Print uses
+  deeper tones on its light code surface.
+- A mistake stops the load with the slide and block: an unknown color, a color
+  with no `data-apis`, a missing package label, an API that is not in the code,
+  one API claimed by two packages, overlapping lines, or lines outside the block.
+- Go is a workload, not an AppHost language. The starter shows `main.go` as the
+  service, and `AppHost.cs` with `AddGoApp` from `Aspire.Hosting.Go`
+  (`aspire add go`), which is the only part tinted teal.
+
 ### Design components
 
 The shell ships a few reusable parts in the aspire.dev style. They are plain
@@ -329,6 +411,7 @@ syntax and nothing to change in TypeScript. Copy working examples from
 | Windows | Fenced code and `data-diagram` graphs share one window chrome. Name a code window with `data-caption`; a diagram uses its JSON `title`, or `data-caption` on the `div`. |
 | Tables, quotes, keys | Standard Markdown tables become a rounded panel, `> a quote` becomes a quote panel with an accent mark, and `<kbd>Down</kbd>` renders a key cap. |
 | Centered slide | Reveal's native `<!-- .slide: class="center" -->` vertically centers a sparse slide. Content slides otherwise keep one top anchor. |
+| Accent color | `data-accent="cyan"` (or `pink`, `teal`) in a slide comment retargets that slide's kicker, accent word, and bullets; on a `.card` it retargets just that card. Without it a slide keeps the Aspire purple. The starter uses cyan for code and reference slides and teal for running it. Use it for a few chapter labels, not on every slide. |
 
 The title slide adds the aspire.dev hero grid (1px lines on a 72px cell that
 fade toward the edges) behind its intro. It appears only there, fades out as you
@@ -341,6 +424,78 @@ screen. All same-data nodes/relationships remain present. In desktop split
 presentation, a tall fallback has one labeled, keyboard-scrollable region;
 reading, compact, and print expand it fully. Focus that region to scroll it
 without advancing the deck.
+
+### Choose how slides move
+
+Moving from one slide to the next uses Reveal's own transition system, which you
+can set at three levels. The most specific one wins: **deck < chapter < slide**.
+
+**The whole deck.** `transition` in `deck.config.json` is the default for every
+slide. Omit it for the quiet fade shown here.
+
+```json
+"transition": { "style": "fade", "speed": "fast", "background": "none" }
+```
+
+**A chapter.** A chapter is a named set of transition settings. Define it in
+`deck.config.json`, then start it on a slide with `data-chapter`. It covers that
+slide and every slide after it until a slide starts another chapter, and it
+fills in each value those slides have not set themselves. A chapter that sets
+nothing (`{}`) returns to the deck default.
+
+```json
+"chapters": {
+  "code": { "style": "slide" },
+  "diagrams": {}
+}
+```
+
+```markdown
+<!-- .slide: id="copyable-code" data-chapter="code" -->
+```
+
+A chapter can begin again later, so one definition can cover several runs of
+slides. A definition that no slide uses does nothing, so replacing the starter
+slides never breaks the deck.
+
+**One slide.** Reveal's native attributes in the slide comment always win:
+
+```markdown
+<!-- .slide: id="big-idea" data-transition="slide-in fade-out" data-transition-speed="slow" -->
+```
+
+| Setting | In `deck.config.json` | On a slide | Values |
+| --- | --- | --- | --- |
+| Style | `style` | `data-transition` | `none`, `fade`, `slide`, `convex`, `concave`, `zoom` |
+| Speed | `speed` | `data-transition-speed` | `default`, `fast`, `slow` |
+| Background | `background` | `data-background-transition` | the six styles; it matters only for slides with a `data-background-*` |
+
+- A chapter or slide style may split entering from leaving, as in
+  `"slide-in fade-out"`: one `-in` and one `-out` style from `fade`, `slide`,
+  `convex`, `concave`, or `zoom` (never `none`), in either order. The deck
+  default and backgrounds take a single style.
+- Each setting resolves on its own. A slide that sets only
+  `data-transition-speed` still receives its chapter's style.
+- A chapter applies to slides, including slides in a vertical stack. Reveal moves
+  into and out of a whole stack with the stack's own motion, so that one move
+  follows the deck default; moves between the slides inside it follow the chapter.
+- Reveal's `fade` is a fixed half-second dissolve, so speed changes the other
+  styles. Reveal also cannot return one slide to `default` speed while the whole
+  deck is `fast` or `slow`.
+- Use motion for continuity: a quiet default, one chapter that moves differently,
+  and the occasional explicit slide, as the starter does. Its **Choose how slides
+  move** slide arrives with `slide-in` and leaves with `fade-out`.
+- Reading mode, print, reduced motion, and the speaker view's previews never
+  animate, whatever the settings. The authored attributes stay in place and apply
+  again when you present.
+- A mistake stops the load and names it: an unsupported style or speed, an
+  incomplete in/out pair, or a slide whose `data-chapter` is not defined (the
+  message lists the chapters that are).
+
+The browser's View Transitions API is deliberately not used. Reveal's native
+transitions already cover moving between slides, and a second layer would have to
+intercept every way a slide changes (keys, toolbar, history, deep links, the
+speaker view) while staying out of previews, reading, print, and reduced motion.
 
 ### Alignment, diagrams, icons, and motion
 
@@ -545,6 +700,32 @@ at its first state. The trailing number is Reveal's zero-based fragment index;
 stage 0 is the initially visible content, not fragment 0.
 The print link opens Reveal's `?print-pdf` layout with all slides, not only
 the currently visible one. Code expands for print without hiding its contents.
+
+Clicking **Copy** hands the arrow keys back to the deck, and so does clicking a
+short code block. A code block that scrolls keeps its own arrow and Page keys
+while it has focus, so you can read it without leaving the slide; click the slide
+or Tab away to give the keys back.
+
+### Speaker notes
+
+Everything after `Note:` on a slide is a presenter note, and the starter's
+slides carry short `Cue:` lines you can replace. Press **S**, or choose Menu >
+**Speaker notes**, to open Reveal's own speaker view in a second window. It shows
+the current slide, what Next will reveal, your notes, the time of day, and a timer.
+
+1. Allow pop-ups for the site. If the browser blocks the window the deck says so;
+   allow it and press S again.
+2. Put the deck window on the projector and drag the speaker window to your own
+   screen. Both stay in step with every code step, Next, Back, and slide change,
+   and keys pressed in the speaker window drive the audience window.
+3. The two previews are the real slides at the audience's proportions, without
+   the toolbar, and they skip transitions so each step lands at once. Opening the
+   speaker view mid-slide never moves the audience, and a reloaded preview
+   returns to the audience's step by itself.
+
+**Notes are public, not confidential.** They live in `slides.md`, which the
+published site serves to every visitor, and they are hidden from the audience's
+screen, not secret. Never put anything in a note that you would not publish.
 
 ## License and assets
 

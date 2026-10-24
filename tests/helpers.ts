@@ -107,3 +107,55 @@ export async function renderedIds(page: Page) {
     return link.dataset.slide;
   }));
 }
+
+export interface Contrast {
+  text: string;
+  ratio: number;
+}
+
+// WCAG contrast of what is really painted. Every translucent background from the element up to the page is composited
+// over white paper by the canvas, so a transparent layer is never mistaken for black. With `fill`, the element's own
+// background (or its pseudo-element's) is the color being measured, against the surface behind it.
+export async function contrastOf(page: Page, selector: string, options: { fill?: boolean; pseudo?: string } = {}): Promise<Contrast[]> {
+  return page.evaluate(({ css, fill, pseudo }) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext('2d', { willReadFrequently: true })!;
+    const painted = (colors: string[]) => {
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, 1, 1);
+      for (const color of colors) {
+        context.fillStyle = color;
+        context.fillRect(0, 0, 1, 1);
+      }
+      return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
+    };
+    const layers = (start: Element | null) => {
+      const found: string[] = [];
+      for (let node = start; node; node = node.parentElement) {
+        const color = getComputedStyle(node).backgroundColor;
+        if (color !== 'transparent' && !/^rgba\([^)]*,\s*0\)$/.test(color)) found.unshift(color);
+      }
+      return found;
+    };
+    const luminance = (rgb: number[]) => {
+      const [r, g, b] = rgb.map((value) => { const v = value / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    return [...document.querySelectorAll(css)].map((node) => {
+      const style = getComputedStyle(node, pseudo ?? null);
+      const surface = painted(layers(fill ? node.parentElement : node));
+      const foreground = painted([...layers(fill ? node.parentElement : node), fill ? style.backgroundColor : style.color]);
+      const [hi, lo] = [luminance(foreground), luminance(surface)].sort((a, b) => b - a);
+      return { text: (node.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 40) || node.className.toString(), ratio: (hi + 0.05) / (lo + 0.05) };
+    });
+  }, { css: selector, fill: options.fill ?? false, pseudo: options.pseudo });
+}
+
+export function expectContrast(rows: Contrast[], minimum: number, count: number | undefined, label: string) {
+  if (count !== undefined) expect(rows.length, `${label}: elements measured`).toBe(count);
+  expect(rows.length, `${label}: something was measured`).toBeGreaterThan(0);
+  for (const row of rows) expect(row.ratio, `${label}: ${row.text}`).toBeGreaterThanOrEqual(minimum);
+}

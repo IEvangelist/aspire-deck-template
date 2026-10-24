@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import hljs from 'highlight.js';
 import { description, normalizeBase, parseDeckJson } from './src/config';
 import { parseDiagramJson } from './src/diagram-config';
+import { checkSocialImage, socialTags, type ImageSize } from './src/social';
 
 function configuration() {
   const config = parseDeckJson(readFileSync(new URL('./deck.config.json', import.meta.url), 'utf8'));
@@ -12,7 +13,15 @@ function configuration() {
       !existsSync(resolve('public', decodeURIComponent(avatar.replace(/^\//, '').split(/[?#]/)[0])))) {
     throw new Error(`deck.config.json: presenter.avatar.src "${avatar}" does not exist in public/. Add the image or omit avatar.`);
   }
-  return config;
+  let size: ImageSize | undefined;
+  if (config.social) {
+    const file = resolve('public', decodeURIComponent(config.social.image.replace(/^\//, '').split(/[?#]/)[0]));
+    if (!existsSync(file)) {
+      throw new Error(`deck.config.json: social.image "${config.social.image}" does not exist in public/. Add the PNG or remove the social block.`);
+    }
+    size = checkSocialImage(readFileSync(file), `deck.config.json: social.image "${config.social.image}"`);
+  }
+  return { config, size };
 }
 
 configuration();
@@ -84,20 +93,14 @@ export default defineConfig({
     transformIndexHtml: {
       order: 'pre',
       handler(html) {
-        const config = configuration();
+        const { config, size } = configuration();
         return {
           html: html.replace('<title>Aspire presentation</title>', `<title>${escapeHtml(config.title)}</title>`),
           tags: [
             { tag: 'meta', attrs: { name: 'description', content: description(config) } },
             { tag: 'meta', attrs: { name: 'author', content: config.presenter.name } },
-            { tag: 'meta', attrs: { property: 'og:title', content: config.title } },
-            { tag: 'meta', attrs: { property: 'og:description', content: description(config) } },
-            { tag: 'meta', attrs: { property: 'og:type', content: 'website' } },
-            { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary' } },
-            ...(canonical ? [
-              { tag: 'link', attrs: { rel: 'canonical', href: canonical } },
-              { tag: 'meta', attrs: { property: 'og:url', content: canonical } },
-            ] : []),
+            ...socialTags(config, canonical, size),
+            ...(canonical ? [{ tag: 'link', attrs: { rel: 'canonical', href: canonical } }] : []),
           ],
         };
       },

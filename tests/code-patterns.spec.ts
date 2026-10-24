@@ -728,6 +728,7 @@ test('the starter keeps every earlier slide id and adds the new patterns in orde
     expect(ids).toContain(id);
   }
   const first = ids.indexOf('apphost-example');
-  expect(ids.slice(first, first + 4)).toEqual(['apphost-example', 'compare-code', 'run-and-reveal', 'rich-architecture']);
+  expect(ids.slice(first, first + 6)).toEqual(['apphost-example', 'apphost-csharp', 'go-workload', 'compare-code', 'run-and-reveal', 'rich-architecture']);
+  expect(ids.slice(ids.indexOf('comparison-layout')).join()).toBe('comparison-layout,transitions,publish-on-push');
   expect(new Set(ids).size).toBe(ids.length);
 });

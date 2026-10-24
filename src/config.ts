@@ -1,6 +1,19 @@
+import {
+  checkSpeed, checkStyle,
+  type ChapterTransition, type TransitionDefaults, type TransitionStyle,
+} from './transitions';
+
 export interface DeckLink {
   label: string;
   url: string;
+}
+
+export interface DeckSocial {
+  image: string;
+  alt: string;
+  title?: string;
+  description?: string;
+  siteName?: string;
 }
 
 export interface DeckConfig {
@@ -15,6 +28,9 @@ export interface DeckConfig {
   };
   event?: { name?: string; date?: string; location?: string };
   links: DeckLink[];
+  transition: TransitionDefaults;
+  chapters: Record<string, ChapterTransition>;
+  social?: DeckSocial;
 }
 
 function invalid(field: string, message: string): never {
@@ -92,9 +108,57 @@ function linkUrl(value: unknown, field: string): string {
   return source;
 }
 
+// The deck default is Reveal's own single transition, so only a chapter may use an in/out pair.
+function transitionSettings(value: unknown, field: string, pair: boolean): ChapterTransition {
+  const settings: ChapterTransition = {};
+  const input = object(value, field, ['style', 'speed', 'background']);
+  const where = (key: string) => `deck.config.json: ${field}.${key}`;
+  if (input.style !== undefined) settings.style = checkStyle(requiredText(input.style, `${field}.style`), where('style'), pair);
+  if (input.speed !== undefined) settings.speed = checkSpeed(requiredText(input.speed, `${field}.speed`), where('speed'));
+  if (input.background !== undefined) {
+    settings.background = checkStyle(requiredText(input.background, `${field}.background`), where('background'), false) as TransitionStyle;
+  }
+  return settings;
+}
+
+// Each chapter is a named set of transition settings. A slide begins it with data-chapter, so what a chapter covers
+// lives beside the slides and a definition that no slide uses does no harm.
+function parseChapters(value: unknown): Record<string, ChapterTransition> {
+  const chapters: Record<string, ChapterTransition> = {};
+  if (value === undefined) return chapters;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    invalid('chapters', 'must be an object that names each chapter, such as { "code": { "style": "slide" } }.');
+  }
+  for (const [id, entry] of Object.entries(value)) {
+    if (!/^[a-z][a-z\d_-]*$/i.test(id)) {
+      invalid(`chapters.${id}`, 'is not a valid chapter id. Use letters, numbers, - or _, starting with a letter.');
+    }
+    chapters[id] = transitionSettings(entry, `chapters.${id}`, true);
+  }
+  return chapters;
+}
+
 export function parseDeckConfig(value: unknown): DeckConfig {
-  const config = object(value, 'config', ['title', 'subtitle', 'description', 'presenter', 'event', 'links']);
+  const config = object(value, 'config', ['title', 'subtitle', 'description', 'presenter', 'event', 'links', 'transition', 'chapters', 'social']);
   const presenter = object(config.presenter, 'presenter', ['name', 'role', 'organization', 'avatar']);
+  let social: DeckConfig['social'];
+  if (config.social !== undefined) {
+    const input = object(config.social, 'social', ['image', 'alt', 'title', 'description', 'siteName']);
+    const image = requiredText(input.image, 'social.image');
+    if (/^[a-z][a-z\d+.-]*:|^\/\//i.test(image)) {
+      invalid('social.image', 'must be a PNG path relative to public/, such as assets/social-card.png. Remote images are not supported.');
+    }
+    validateMediaUrl(image, 'deck.config.json: social.image');
+    if (!/\.png$/i.test(image.split(/[?#]/)[0])) invalid('social.image', 'must be a .png file.');
+    const alt = requiredText(input.alt, 'social.alt');
+    if (alt.length > 420) invalid('social.alt', 'must be 420 characters or fewer.');
+    social = {
+      image, alt,
+      title: text(input.title, 'social.title'),
+      description: text(input.description, 'social.description'),
+      siteName: text(input.siteName, 'social.siteName'),
+    };
+  }
   let avatar: DeckConfig['presenter']['avatar'];
   if (presenter.avatar !== undefined) {
     const input = object(presenter.avatar, 'presenter.avatar', ['src', 'alt']);
@@ -134,6 +198,9 @@ export function parseDeckConfig(value: unknown): DeckConfig {
     },
     event,
     links,
+    transition: config.transition === undefined ? {} : transitionSettings(config.transition, 'transition', false) as TransitionDefaults,
+    chapters: parseChapters(config.chapters),
+    social,
   };
 }
 

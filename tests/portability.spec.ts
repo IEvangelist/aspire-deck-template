@@ -45,6 +45,29 @@ for (const base of ['/', '/another-name/']) {
       const response = await page.goto(`${origin}${base}?mode=present`);
       const html = await response!.text();
       expect(html).toContain(`href="${canonical}"`);
+      // The shipped HTML, before any script runs, carries the share metadata with absolute URLs under this base path.
+      const decode = (value: string) => value.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+      const shipped = Object.fromEntries([...html.matchAll(/<meta (?:property|name)="([^"]+)" content="([^"]*)">/g)].map((match) => [match[1], decode(match[2])]));
+      expect(shipped['og:url']).toBe(canonical);
+      expect(shipped['og:locale']).toBe('en_US');
+      expect(shipped['og:title']).toBe(config.social?.title ?? config.title);
+      expect(html).toContain('<meta name="theme-color" content="#f5f6f8">');
+      if (config.social) {
+        const image = `${canonical}${config.social.image.replace(/^\/+/, '')}`;
+        expect(shipped).toMatchObject({
+          'og:image': image, 'og:image:secure_url': image, 'og:image:type': 'image/png', 'og:image:alt': config.social.alt,
+          'twitter:card': 'summary_large_image', 'twitter:image': image, 'twitter:image:alt': config.social.alt,
+        });
+        const published = readFileSync(join(outDir, config.social.image));
+        expect([Number(shipped['og:image:width']), Number(shipped['og:image:height'])], 'the tags state the published file\'s real size')
+          .toEqual([published.readUInt32BE(16), published.readUInt32BE(20)]);
+        expect(published.equals(readFileSync(join('public', config.social.image)))).toBe(true);
+        const served = await page.request.get(image.replace(canonical, `${origin}${base}`));
+        expect(served.headers()['content-type']).toBe('image/png');
+      } else {
+        expect(shipped['twitter:card']).toBe('summary');
+        expect(Object.keys(shipped).filter((key) => /image/.test(key))).toEqual([]);
+      }
       await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');
       await page.evaluate(() => document.fonts.ready);
       await expect(page).toHaveTitle(config.title);

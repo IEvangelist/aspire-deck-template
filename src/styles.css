@@ -43,6 +43,14 @@
   --dot-red: #ee6a5f;
   --dot-yellow: #f3be4f;
   --dot-green: #61c554;
+  /* Package colors live in the always-dark code window; page accents are the AA text variants for each theme. */
+  --pkg-purple: #b79cff;
+  --pkg-cyan: #6bd3ff;
+  --pkg-pink: #f08cff;
+  --pkg-teal: #3ddbc0;
+  --accent-cyan: #0b6a8c;
+  --accent-pink: #a3198f;
+  --accent-teal: #0f766e;
   --radius-small: 8px;
   --radius-action: 10.4px;
   --radius-medium: 12px;
@@ -68,6 +76,9 @@
   --ink: #f7f5ff;
   --secondary: #c5c0d5;
   --accent: #ad92ff;
+  --accent-cyan: #6bd3ff;
+  --accent-pink: #f08cff;
+  --accent-teal: #3ddbc0;
   --line: rgb(229 226 244 / 0.16);
   --line-strong: rgb(229 226 244 / 0.3);
   --accent-soft: rgb(173 146 255 / 0.12);
@@ -94,7 +105,15 @@
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 999px; background: var(--scrollbar); background-clip: content-box; }
 ::-webkit-scrollbar-thumb:hover { background: var(--secondary); background-clip: content-box; }
-[hidden] { display: none !important; }
+[hidden]:not(.slides section) { display: none !important; }
+/* Reveal marks every slide but the current one hidden and keeps its neighbours rendered so they can animate in and out, so
+   the rule above must not remove slides. They stay unreachable and unpainted through visibility, which Reveal transitions
+   together with the motion, so a leaving slide remains until it is gone. */
+.reveal .slides section[hidden] { visibility: hidden; }
+:root[data-compact='true']:not([data-reading='true']) .reveal .slides section[hidden] { display: none !important; }
+/* Reveal's fade animates opacity only, so a leaving slide would vanish at once; give visibility the same duration. */
+.reveal .slides section[data-transition='fade'], .reveal.fade .slides section:not([data-transition]),
+.reveal.fade .slides > section > section:not([data-transition]) { transition: opacity 0.5s, visibility 0.5s; }
 body, body.reveal-viewport { margin: 0; background: var(--canvas); color: var(--ink); }
 .reveal.reveal-viewport { background: transparent; color: var(--ink); }
 a { color: var(--accent); text-underline-offset: 0.18em; }
@@ -219,6 +238,13 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .reveal .slides { text-align: left; color: var(--ink); }
 .reveal .slides section { padding: 24px; color: var(--ink); }
 .reveal .slides section.stack { padding: 0; }
+/* The speaker view embeds the deck as its current/upcoming previews: no toolbar, and the full canvas scales to the frame. */
+:root[data-receiver='true'] { --toolbar-height: 0px; }
+:root[data-receiver='true'] .skip-link, :root[data-receiver='true'] .deck-status { display: none !important; }
+/* A slide's own transition attributes outrank the deck setting, so reading, print, reduced motion and the speaker view's
+   previews switch the motion off at the element itself. The authored attributes stay in place for presenting. */
+:root[data-static='true'] .reveal .slides section, :root[data-static='true'] .reveal .backgrounds .slide-background,
+:root[data-receiver='true'] .reveal .slides section, :root[data-receiver='true'] .reveal .backgrounds .slide-background { transition: none !important; }
 .slide-viewport { position: relative; z-index: 1; width: 100%; height: 100%; overflow: hidden; }
 .reveal .slide-content { width: 100%; max-width: 1200px; margin-inline: auto; padding: 16px 32px; }
 
@@ -232,6 +258,11 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .reveal :is(h1, h2, h3) > [data-icon] .octicon { width: 0.9em; height: 0.9em; }
 .reveal .slide-kicker { display: flex; align-items: center; gap: 14px; margin: 0 0 18px; font: 600 18px/1.2 var(--font-code); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 .reveal .slide-kicker::before { content: ''; width: 28px; height: 2px; border-radius: 2px; background: currentColor; }
+/* data-accent on a slide or a card retargets the accent tokens for just that region. The kicker label names the chapter,
+   so color is never the only cue. */
+.reveal [data-accent='cyan'] { --accent: var(--accent-cyan); --accent-soft: color-mix(in srgb, var(--accent-cyan) 10%, transparent); --accent-line: color-mix(in srgb, var(--accent-cyan) 38%, transparent); }
+.reveal [data-accent='pink'] { --accent: var(--accent-pink); --accent-soft: color-mix(in srgb, var(--accent-pink) 10%, transparent); --accent-line: color-mix(in srgb, var(--accent-pink) 38%, transparent); }
+.reveal [data-accent='teal'] { --accent: var(--accent-teal); --accent-soft: color-mix(in srgb, var(--accent-teal) 10%, transparent); --accent-line: color-mix(in srgb, var(--accent-teal) 38%, transparent); }
 .reveal p { margin: 20px 0; line-height: 1.55; max-width: 68ch; }
 .reveal a { color: var(--accent); }
 .reveal strong { font-weight: 600; }
@@ -301,9 +332,28 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 /* Each source line is its own block, so the line wrapper (not the code element) owns wrapping. The newline stays a
    text node between lines, which keeps textContent, selection and Copy identical to the authored source. */
 .reveal pre code { display: block; max-height: none; margin: 0; padding: 0; overflow: visible; background: none; color: inherit; font: inherit; white-space: normal; overflow-wrap: anywhere; }
-.reveal .code-line { position: relative; display: block; min-height: 1.5em; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; transition: background-color var(--motion-fast) var(--motion-ease); }
+.reveal .code-line { position: relative; display: block; min-height: 1.5em; border-radius: 0; white-space: pre-wrap; overflow-wrap: anywhere; transition: background-color var(--motion-fast) var(--motion-ease); }
 .reveal pre[data-wrap='false'] .code-line { width: max-content; min-width: 100%; white-space: pre; overflow-wrap: normal; }
 .reveal .code-line.is-focused { background: var(--code-focus); }
+/* A focused run is one band: only its first line has top corners and only its last has bottom corners. */
+.reveal .code-line.focus-start { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+.reveal .code-line.focus-end { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+/* Package annotation: owned APIs take their package color, and a gutter rail groups the lines that use them. */
+[data-rail='purple'], [data-pkg='purple'] { --pkg: var(--pkg-purple); }
+[data-rail='cyan'], [data-pkg='cyan'] { --pkg: var(--pkg-cyan); }
+[data-rail='pink'], [data-pkg='pink'] { --pkg: var(--pkg-pink); }
+[data-rail='teal'], [data-pkg='teal'] { --pkg: var(--pkg-teal); }
+.reveal .pkg-api { color: var(--pkg); font-weight: 600; }
+.reveal .code-line[data-rail]::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(-1 * var(--rail-x, 16px)); width: 4px; background: var(--pkg); pointer-events: none; }
+.reveal .code-line[data-rail].rail-start::after { top: 4px; border-top-left-radius: 2px; border-top-right-radius: 2px; }
+.reveal .code-line[data-rail].rail-end::after { bottom: 4px; border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; }
+.reveal .code-legend { display: flex; flex-wrap: wrap; gap: 6px 32px; margin: 0; padding: 12px 18px; border-bottom: 1px solid var(--code-line); background: var(--code-chrome); color: var(--code-ink); font: 500 18px/1.4 var(--font-code); }
+.reveal .code-legend li { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; margin: 0; padding: 0; }
+.reveal .code-legend li + li { margin-top: 0; }
+.reveal .code-legend li::before { content: none; }
+.reveal .legend-package { min-width: 0; overflow-wrap: anywhere; }
+.reveal .legend-swatch { flex: none; align-self: center; width: 12px; height: 12px; border-radius: 3px; background: var(--pkg); }
+.reveal .legend-add { color: var(--code-muted); font-size: 16px; font-weight: 400; overflow-wrap: anywhere; }
 /* Line numbers are generated content: they never enter textContent, selection or Copy. */
 .reveal pre code[data-line-numbers] .code-line { padding-left: 3em; }
 .reveal pre code[data-line-numbers] .code-line::before { content: attr(data-line); content: attr(data-line) / ''; position: absolute; top: 0; left: 0; width: 2.6em; color: var(--syntax-comment); font-size: 0.78em; font-variant-numeric: tabular-nums; line-height: calc(1.5 / 0.78); text-align: right; user-select: none; }
@@ -529,8 +579,13 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal .presenter-role, :root:is([data-reading='true'], [data-compact='true']) .reveal .event { font-size: 18px; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal .presenter-avatar { width: 180px; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal .presenter-links a { font-size: 18px; }
-  :root:is([data-reading='true'], [data-compact='true']) .reveal pre { padding: 16px; font-size: 17px; }
+  :root:is([data-reading='true'], [data-compact='true']) .reveal pre { --rail-x: 12px; padding: 16px; font-size: 17px; }
   :root:is([data-reading='true'], [data-compact='true']) .reveal .code-panel figcaption { padding: 8px 12px; gap: 10px; font-size: 15px; }
+  :root:is([data-reading='true'], [data-compact='true']) .reveal .code-legend { gap: 4px 16px; padding: 8px 12px; font-size: 15px; }
+  :root:is([data-reading='true'], [data-compact='true']) .reveal .legend-add { font-size: 14px; }
+  /* A phone leaves too little room beside the window dots and Copy, so a code window's title takes its own row. */
+  .reveal .code-panel figcaption > span { grid-column: 1 / -1; grid-row: 2; }
+  .reveal .code-panel figcaption .copy-code { grid-column: 3; grid-row: 1; }
   /* A phone leaves too little room for the title and the always-visible label beside Copy, so the title takes its own row. */
   .reveal .terminal-panel figcaption { grid-template-columns: minmax(0, 1fr) auto; }
   .reveal .terminal-panel figcaption > span { grid-column: 1 / -1; grid-row: 2; }
@@ -588,6 +643,13 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
     --syntax-number: #854505;
     --syntax-attribute: #005b99;
     --syntax-comment: #605872;
+    --pkg-purple: #512bd4;
+    --pkg-cyan: #075a78;
+    --pkg-pink: #a3198f;
+    --pkg-teal: #0b5f58;
+    --accent-cyan: #0b6a8c;
+    --accent-pink: #a3198f;
+    --accent-teal: #0f766e;
   }
   .toolbar, .skip-link, .deck-status, .deck-menu, .copy-code, .reveal .progress, .reveal::before, .reveal::after, .window-dots, .reveal .code-panel figcaption::before { display: none !important; }
   .reveal .layout-statement { background: none; }

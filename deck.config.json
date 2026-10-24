@@ -14,5 +14,17 @@
   "links": [
     { "label": "Aspire", "url": "https://aspire.dev/" },
     { "label": "reveal.js", "url": "https://revealjs.com/" }
-  ]
+  ],
+  "transition": { "style": "fade", "speed": "fast", "background": "none" },
+  "chapters": {
+    "code": { "style": "slide" },
+    "diagrams": {}
+  },
+  "social": {
+    "image": "assets/social-card.png",
+    "alt": "Aspire Deck Template: a Markdown-first reveal.js deck for Aspire talks, with Markdown, code walkthroughs and diagrams. Template author David Pine, davidpine.dev. Source: IEvangelist/aspire-deck-template on GitHub.",
+    "title": "Aspire Deck Template",
+    "description": "A Markdown-first reveal.js deck template in the Aspire look: code walkthroughs with highlighted lines, diagrams, a recorded terminal, speaker notes, and self-publishing GitHub Pages.",
+    "siteName": "IEvangelist/aspire-deck-template"
+  }
 }

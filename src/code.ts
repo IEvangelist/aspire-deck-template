@@ -170,6 +170,130 @@ function parseSteps(spec: string, count: number, where: string): Ranges[] {
   });
 }
 
+const accents = ['purple', 'cyan', 'pink', 'teal'] as const;
+type Accent = (typeof accents)[number];
+type Package = { accent: Accent; label?: string; add?: string; apis: string[]; lines?: Set<number> };
+// Names inside these tokens are prose or data, never an API call.
+const notCode = '.hljs-string, .hljs-comment, .hljs-regexp, .hljs-meta, .hljs-doctag';
+
+// data-pkg-<accent>, data-add-<accent>, data-apis-<accent> and data-lines-<accent> describe which integration package owns
+// which APIs in a block. They arrive through Reveal's .element comment, so they need no TypeScript and no JSON.
+function readPackages(block: Block, count: number): Package[] {
+  const where = `${slideOf(block.pre)}, ${block.label}`;
+  const fields = new Map<string, Partial<Record<'pkg' | 'add' | 'apis' | 'lines', string>>>();
+  for (const name of block.pre.getAttributeNames()) {
+    const match = /^data-(pkg|add|apis|lines)-(.+)$/.exec(name);
+    if (match) fields.set(match[2], { ...fields.get(match[2]), [match[1]]: (block.pre.getAttribute(name) ?? '').trim() });
+  }
+  const owners = new Map<string, Accent>();
+  return [...fields].map(([name, field]) => {
+    const accent = accents.find((candidate) => candidate === name);
+    if (!accent) throw new Error(`${where}: "${name}" is not a package accent. Use ${accents.join(', ')}.`);
+    if (!field.pkg && !field.add) throw new Error(`${where}: give data-pkg-${accent} (the package name) or data-add-${accent} (the name after "aspire add").`);
+    if (field.add && !/^[A-Za-z][\w.-]*$/.test(field.add)) {
+      throw new Error(`${where}: data-add-${accent} "${field.add}" must be only what follows "aspire add", such as redis or Aspire.Hosting.Redis.`);
+    }
+    const apis = (field.apis ?? '').split(/\s+/).filter(Boolean);
+    if (!apis.length) throw new Error(`${where}: data-apis-${accent} is required. List the exact API names this package owns, separated by spaces.`);
+    for (const api of apis) {
+      if (!/^[A-Za-z_$][\w$]*$/.test(api)) throw new Error(`${where}: "${api}" in data-apis-${accent} is not an identifier.`);
+      const other = owners.get(api);
+      if (other) throw new Error(`${where}: ${api} is owned by both ${other} and ${accent}. An API belongs to one package.`);
+      owners.set(api, accent);
+    }
+    let lines: Set<number> | undefined;
+    if (field.lines !== undefined) {
+      const steps = parseSteps(field.lines, count, `${where}, data-lines-${accent}`);
+      if (steps.length !== 1) throw new Error(`${where}: data-lines-${accent} takes commas and hyphens such as 1-3,5, not |.`);
+      lines = new Set(steps[0].flatMap(([from, to]) => Array.from({ length: to - from + 1 }, (_, offset) => from + offset)));
+    }
+    return { accent, label: field.pkg || undefined, add: field.add || undefined, apis, lines };
+  });
+}
+
+// Colors the exact APIs each package owns and rails the lines they live on. Everything is markup around the existing
+// text, so textContent, Copy and selection stay the authored source.
+function annotate(block: Block, panel: HTMLElement) {
+  if (block.pre.closest('aside.notes')) return;
+  const lines = [...block.code.querySelectorAll<HTMLElement>(':scope > .code-line')];
+  const packages = readPackages(block, lines.length);
+  if (!packages.length) return;
+  const where = `${slideOf(block.pre)}, ${block.label}`;
+  const owner = new Map(packages.flatMap((pkg) => pkg.apis.map((api) => [api, pkg.accent] as const)));
+  const pattern = new RegExp(`(?<![\\w$])(${[...owner.keys()].map((api) => api.replaceAll('$', '\\$')).join('|')})(?![\\w$])`, 'g');
+  const used = new Map<string, number[]>();
+  const nodes: Text[] = [];
+  const walker = document.createTreeWalker(block.code, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!node.parentElement?.closest(notCode)) nodes.push(node as Text);
+  }
+  for (const node of nodes) {
+    const line = lines.indexOf(node.parentElement!.closest<HTMLElement>('.code-line')!);
+    const fragment = document.createDocumentFragment();
+    let cursor = 0;
+    for (const match of node.data.matchAll(pattern)) {
+      const api = match[1];
+      fragment.append(node.data.slice(cursor, match.index));
+      const token = document.createElement('span');
+      token.className = 'pkg-api';
+      token.dataset.pkg = owner.get(api);
+      token.textContent = api;
+      fragment.append(token);
+      cursor = match.index + api.length;
+      used.set(api, [...(used.get(api) ?? []), line]);
+    }
+    if (cursor) {
+      fragment.append(node.data.slice(cursor));
+      node.replaceWith(fragment);
+    }
+  }
+  const rails = new Map<number, Accent>();
+  for (const pkg of packages) {
+    for (const api of pkg.apis) {
+      if (!used.has(api)) throw new Error(`${where}: ${api} (data-apis-${pkg.accent}) does not appear as code in this block.`);
+      for (const line of used.get(api)!) {
+        if (pkg.lines && !pkg.lines.has(line + 1)) throw new Error(`${where}: ${api} is used on line ${line + 1}, outside data-lines-${pkg.accent}.`);
+      }
+    }
+    const indexes = pkg.lines ? [...pkg.lines].map((number) => number - 1) : [...new Set(pkg.apis.flatMap((api) => used.get(api)!))];
+    for (const index of indexes) {
+      const other = rails.get(index);
+      if (other && other !== pkg.accent) throw new Error(`${where}: line ${index + 1} belongs to both ${other} and ${pkg.accent}. Give each package its own lines.`);
+      rails.set(index, pkg.accent);
+    }
+  }
+  lines.forEach((line, index) => {
+    const accent = rails.get(index);
+    if (!accent) return;
+    line.dataset.rail = accent;
+    line.classList.toggle('rail-start', rails.get(index - 1) !== accent);
+    line.classList.toggle('rail-end', rails.get(index + 1) !== accent);
+  });
+  const legend = document.createElement('ul');
+  legend.className = 'code-legend';
+  legend.setAttribute('aria-label', 'Integration packages used in this code');
+  const first = (pkg: Package) => Math.min(...[...rails].filter(([, accent]) => accent === pkg.accent).map(([index]) => index));
+  for (const pkg of [...packages].sort((a, b) => first(a) - first(b))) {
+    const item = document.createElement('li');
+    item.dataset.pkg = pkg.accent;
+    const swatch = document.createElement('span');
+    swatch.className = 'legend-swatch';
+    swatch.setAttribute('aria-hidden', 'true');
+    item.append(swatch);
+    for (const [className, value] of [['legend-package', pkg.label], ['legend-add', pkg.add && `aspire add ${pkg.add}`]] as const) {
+      if (!value) continue;
+      const part = document.createElement('span');
+      part.className = className;
+      part.textContent = value;
+      // A real space keeps the selected and copied text readable; the flex layout ignores it.
+      if (item.children.length > 1) item.append(' ');
+      item.append(part);
+    }
+    legend.append(item);
+  }
+  panel.querySelector('figcaption')!.after(legend);
+}
+
 // Reveal numbers a slide's fragments when it initializes, and an unnumbered fragment would then be revealed after all of
 // them. A fragment created here (a line step or a terminal output) takes its place in document order instead: it is
 // numbered just before the first fragment that follows it, or last when none does.
@@ -270,7 +394,9 @@ export async function prepareCode(root: HTMLElement, announce: (message: string)
       continue;
     }
     const block = await highlightBlock(code);
-    registerFocus(block, codePanel(block, announce));
+    const panel = codePanel(block, announce);
+    annotate(block, panel);
+    registerFocus(block, panel);
   }
 }
 
@@ -298,7 +424,13 @@ export function syncCodeFocus(current: HTMLElement | undefined, staticMode: bool
       block.step = step;
       const wanted = new Set<number>();
       for (const [from, to] of block.steps[step] ?? []) for (let number = from; number <= to; number++) wanted.add(number);
-      block.lines.forEach((line, index) => line.classList.toggle('is-focused', wanted.has(index + 1)));
+      // Only the ends of a contiguous run have outer corners, so adjacent focused lines read as one band.
+      block.lines.forEach((line, index) => {
+        const on = wanted.has(index + 1);
+        line.classList.toggle('is-focused', on);
+        line.classList.toggle('focus-start', on && !wanted.has(index));
+        line.classList.toggle('focus-end', on && !wanted.has(index + 2));
+      });
       block.pre.dataset.focusStep = step < 0 ? '' : String(step + 1);
     }
     const arriving = block.pre.closest('section') === current;

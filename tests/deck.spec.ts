@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { assetRequest, authorMarkdown, captureClipboard, exampleMarkdown, expectCopied, jump, ready, renderedIds } from './helpers';
 
 test('configuration changes intro, metadata, avatar, event, and arbitrary links', async ({ page }) => {
+  await authorMarkdown(page);
   await page.route(assetRequest('deck.config.json'), (route) => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({
@@ -33,6 +34,7 @@ test('configuration changes intro, metadata, avatar, event, and arbitrary links'
 });
 
 test('omitted avatar, links, and event produce a text-led intro', async ({ page }) => {
+  await authorMarkdown(page);
   await page.route(assetRequest('deck.config.json'), (route) => route.fulfill({
     contentType: 'application/json', body: JSON.stringify({ title: 'A talk', presenter: { name: 'A presenter' } }),
   }));

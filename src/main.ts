@@ -18,6 +18,7 @@ import { iconElement, loadIcons, renderIcons } from './icons';
 import { iconAliases } from './icon-names';
 import { parseDiagramJson } from './diagram-config';
 import { renderDiagrams } from './diagrams';
+import { applyTransitions, type TransitionDefaults } from './transitions';
 import './styles.css';
 
 function element<T extends HTMLElement>(id: string, type: { new(): T }): T {
@@ -50,14 +51,18 @@ const darkPreference = matchMedia('(prefers-color-scheme: dark)');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const compactViewport = matchMedia('(max-width: 999px), (max-height: 649px)');
 const initialUrl = new URL(location.href);
+// The speaker view embeds the deck with ?receiver for its current/upcoming previews. Those must look like the audience's
+// slide (scaled canvas, no toolbar, never automatic reading) even though the iframes are narrower than a phone.
+const receiver = /receiver/i.test(location.search);
 const printMode = initialUrl.searchParams.has('print-pdf');
-let reading = !printMode && (initialUrl.searchParams.get('mode') === 'read' ||
+let reading = !receiver && !printMode && (initialUrl.searchParams.get('mode') === 'read' ||
   (initialUrl.searchParams.get('mode') !== 'present' && compactViewport.matches));
 let explicitTheme = ['light', 'dark'].includes(initialUrl.searchParams.get('theme') ?? '');
 let current: HTMLElement;
 let slides: HTMLElement[] = [];
 let deck: Reveal.Api;
 let scrollFrame = 0;
+let deckMotion: TransitionDefaults = {};
 
 function announce(message: string) {
   status.textContent = message;
@@ -100,8 +105,10 @@ function renderIntro(config: DeckConfig) {
   for (const [selector, content] of [
     ['meta[name="description"]', description(config)],
     ['meta[name="author"]', config.presenter.name],
-    ['meta[property="og:title"]', config.title],
-    ['meta[property="og:description"]', description(config)],
+    ['meta[property="og:title"]', config.social?.title ?? config.title],
+    ['meta[property="og:description"]', config.social?.description ?? description(config)],
+    ['meta[name="twitter:title"]', config.social?.title ?? config.title],
+    ['meta[name="twitter:description"]', config.social?.description ?? description(config)],
   ]) {
     const meta = document.querySelector<HTMLMetaElement>(selector);
     if (meta) meta.content = content;
@@ -155,8 +162,20 @@ function staticMode() {
   return reading || printMode || reducedMotion.matches;
 }
 
+// The deck default from deck.config.json, or no motion at all where motion would be wrong: reading, print, reduced
+// motion and the speaker view's previews. A slide's own transition attributes outrank this deck setting, so the
+// stylesheet removes their motion in those same contexts.
+function motion() {
+  const off = staticMode() || receiver;
+  return {
+    transition: off ? 'none' : deckMotion.style ?? 'fade',
+    transitionSpeed: deckMotion.speed ?? 'fast',
+    backgroundTransition: off ? 'none' : deckMotion.background ?? 'none',
+  } as const;
+}
+
 function compact() {
-  return !reading && !printMode && compactViewport.matches;
+  return !reading && !printMode && !receiver && compactViewport.matches;
 }
 
 function naturalLayout() {
@@ -165,6 +184,7 @@ function naturalLayout() {
 
 function updateMode() {
   document.documentElement.dataset.reading = String(reading);
+  document.documentElement.dataset.receiver = String(receiver);
   document.documentElement.dataset.static = String(staticMode());
   document.documentElement.dataset.print = String(printMode);
   document.documentElement.dataset.compact = String(compact());
@@ -305,6 +325,7 @@ function closeMenu() {
 }
 
 function toggleReading() {
+  if (receiver) return;
   const slide = current;
   reading = !reading;
   const url = new URL(location.href);
@@ -313,6 +334,7 @@ function toggleReading() {
   updateMode();
   deck.configure({
     ...dimensions(),
+    ...motion(),
     disableLayout: naturalLayout(),
     overview: !reading,
     fragments: !staticMode(),
@@ -393,6 +415,56 @@ function focusPresentation() {
   root.focus({ preventScroll: true });
 }
 
+// The speaker view sends its previews the audience's position once, as soon as the first preview's Reveal starts. That can
+// be before a preview has built its code steps, or even before the other one has loaded, so a preview could stay on its
+// opening step. Each preview says when it is complete, and the audience window asks Reveal's own Notes plugin to send the
+// position again by raising the "resumed" event it already listens to. Nothing replaces the native speaker view.
+function announcePreview() {
+  try {
+    window.parent.opener?.postMessage(JSON.stringify({ namespace: 'aspire-deck', type: 'receiver-ready' }), location.origin);
+  } catch (error) {
+    if (!(error instanceof DOMException)) throw error;
+  }
+}
+
+function resendNotesPosition(event: MessageEvent) {
+  if (event.origin !== location.origin || typeof event.data !== 'string') return;
+  let message: { namespace?: unknown; type?: unknown } | null;
+  try {
+    message = JSON.parse(event.data);
+  } catch (error) {
+    if (error instanceof SyntaxError) return;
+    throw error;
+  }
+  if (message?.namespace === 'aspire-deck' && message.type === 'receiver-ready') deck.dispatchEvent({ type: 'resumed', data: undefined });
+}
+
+// Controls always keep their own keys. A focused code body or diagram region keeps the arrow keys only while it has
+// something to scroll, so clicking a short code block never strands the presenter's Back/Next keys.
+function focusKeepsKeys(target: Element | null) {
+  if (!target) return false;
+  if (target.closest('a, button, input, textarea, select, [contenteditable]')) return true;
+  const region = target.closest<HTMLElement>('pre, [role="region"][tabindex]');
+  return region !== null && (region.scrollHeight > region.clientHeight + 1 || region.scrollWidth > region.clientWidth + 1);
+}
+
+// The S key and the menu share this, so a blocked pop-up is explained instead of failing with an uncaught TypeError
+// from the upstream plugin.
+function openNotes() {
+  closeMenu();
+  const plugin = deck.getPlugin('notes');
+  if (!('open' in plugin) || typeof plugin.open !== 'function') {
+    announce('Speaker notes are not available in this build.');
+    return;
+  }
+  try {
+    plugin.open();
+  } catch (error) {
+    console.error('The speaker view could not open.', error);
+    announce('The speaker view was blocked. Allow pop-ups for this site, then press S again.');
+  }
+}
+
 function wireControls() {
   menuButton.addEventListener('click', () => { menu.showModal(); menuButton.setAttribute('aria-expanded', 'true'); });
   menu.addEventListener('close', () => menuButton.setAttribute('aria-expanded', 'false'));
@@ -414,6 +486,12 @@ function wireControls() {
     if (slide) { goTo(slide, fragmentFor(link.getAttribute('href')!)); focusPresentation(); }
     else announce(`Slide link "${link.getAttribute('href')}" was not found. Open the menu to choose a slide.`);
   });
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const copy = event.target.closest<HTMLButtonElement>('.copy-code');
+    // A pointer click must not leave the keyboard on the Copy button; keyboard activation keeps its focus ring.
+    if (copy && !copy.matches(':focus-visible')) focusPresentation();
+  });
   previous.addEventListener('click', () => {
     if (reading) goTo(slides[Math.max(0, slides.indexOf(current) - 1)]);
     else deck.prev();
@@ -427,12 +505,7 @@ function wireControls() {
   themeButton.addEventListener('click', toggleTheme);
   readButton.addEventListener('click', () => { closeMenu(); toggleReading(); focusPresentation(); });
   overviewButton.addEventListener('click', () => { closeMenu(); deck.toggleOverview(); focusPresentation(); });
-  element('notes', HTMLButtonElement).addEventListener('click', () => {
-    closeMenu();
-    const plugin = deck.getPlugin('notes');
-    if ('open' in plugin && typeof plugin.open === 'function') plugin.open();
-    else announce('Speaker notes could not open. Reload and allow popups for this site.');
-  });
+  element('notes', HTMLButtonElement).addEventListener('click', openNotes);
   document.querySelector('.skip-link')!.addEventListener('click', (event) => { event.preventDefault(); focusPresentation(); });
   viewport.addEventListener('scroll', () => {
     if (!reading || scrollFrame) return;
@@ -456,7 +529,7 @@ function wireControls() {
   });
   window.addEventListener('keydown', (event) => {
     if (!reading || menu.open || event.altKey || event.ctrlKey || event.metaKey ||
-        (event.target instanceof Element && event.target.closest('a, button, input, textarea, select, pre, [role="region"][tabindex], [contenteditable]'))) return;
+        focusKeepsKeys(event.target instanceof Element ? event.target : null)) return;
     const direction = ['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(event.key) ? 1 :
       ['ArrowLeft', 'ArrowUp', 'PageUp'].includes(event.key) ? -1 : 0;
     if (direction) {
@@ -470,7 +543,7 @@ function wireControls() {
   });
   reducedMotion.addEventListener('change', () => {
     updateMode();
-    deck.configure({ transition: reducedMotion.matches ? 'none' : 'fade', fragments: !staticMode(), autoAnimate: !staticMode() });
+    deck.configure({ ...motion(), fragments: !staticMode(), autoAnimate: !staticMode() });
     synchronize();
   });
   window.addEventListener('resize', () => {
@@ -497,11 +570,14 @@ function wireControls() {
   deck.on('resize', synchronize);
   deck.addKeyBinding({ keyCode: 84, key: 'T', description: 'Switch theme' }, toggleTheme);
   deck.addKeyBinding({ keyCode: 82, key: 'R', description: 'Switch reading mode' }, toggleReading);
+  deck.addKeyBinding({ keyCode: 83, key: 'S', description: 'Speaker notes view' }, openNotes);
+  if (!receiver) window.addEventListener('message', resendNotesPosition);
 }
 
 async function start() {
   const [configSource, markdown, diagramSource] = await Promise.all([load(configUrl, 'deck.config.json'), load(markdownUrl, 'slides.md'), load(diagramsUrl, 'diagrams.json')]);
   const config = parseDeckJson(configSource);
+  deckMotion = config.transition;
   const diagrams = parseDiagramJson(diagramSource);
   if (!markdown.trim()) throw new Error('slides.md: the file is empty. Add a Markdown slide.');
   await loadIcons(Object.keys(iconAliases));
@@ -515,7 +591,7 @@ async function start() {
   const theme = initialUrl.searchParams.get('theme');
   setTheme(theme === 'light' || theme === 'dark' ? theme : darkPreference.matches ? 'dark' : 'light');
   updateMode();
-  toolbar.hidden = false;
+  toolbar.hidden = receiver;
   const markdownPlugin = Markdown();
   await preloadCodeLanguages(markdown, markdownPlugin);
   await Promise.all([
@@ -529,22 +605,22 @@ async function start() {
     ...dimensions(),
     margin: 0.07, minScale: 0.15, maxScale: 1.4,
     embedded: true, center: false, controls: false, progress: true,
-    hash: !reading, history: !reading,
-    transition: reducedMotion.matches ? 'none' : 'fade', transitionSpeed: 'fast', backgroundTransition: 'none',
+    hash: !reading && !receiver, history: !reading && !receiver,
+    ...motion(),
     disableLayout: naturalLayout(), overview: !reading, scrollActivationWidth: 0,
     fragments: !staticMode(), pdfSeparateFragments: false,
     autoAnimate: !staticMode(),
     autoAnimateDuration: 0.35,
     autoAnimateEasing: 'cubic-bezier(0.16, 1, 0.3, 1)',
     markdown: { headerIds: false, mangle: false },
-    keyboardCondition: () => !menu.open && !(document.activeElement instanceof Element &&
-      document.activeElement.closest('a, button, input, textarea, select, pre, [role="region"][tabindex], [contenteditable]')),
+    keyboardCondition: () => !menu.open && !focusKeepsKeys(document.activeElement),
     plugins: [() => markdownPlugin, Notes],
   });
   await deck.initialize();
   root.removeAttribute('role');
   await renderDiagrams(diagrams, root);
   prepareSlides();
+  applyTransitions(slides, config.chapters);
   await prepareCode(root, announce);
   await renderIcons();
   await document.fonts.ready;
@@ -553,13 +629,17 @@ async function start() {
   wireControls();
   updatePrintLink();
   const target = targetFor(initialUrl.hash);
-  if (target) goTo(target, fragmentFor(initialUrl.hash));
+  // The speaker view positions its previews, step included. Forcing the first step here could undo the step it has just
+  // set, and the speaker view would then report that as the audience's new position.
+  if (receiver) current = deck.getCurrentSlide();
+  else if (target) goTo(target, fragmentFor(initialUrl.hash));
   else {
     if (initialUrl.hash.startsWith('#/')) announce(`Slide link "${initialUrl.hash}" was not found. Open the menu to choose a slide.`);
     goTo(slides[0]);
   }
   synchronize();
   document.documentElement.dataset.deckReady = 'true';
+  if (receiver) announcePreview();
 }
 
 // Run before Reveal's URL listener so plain links reset cached fragments.
