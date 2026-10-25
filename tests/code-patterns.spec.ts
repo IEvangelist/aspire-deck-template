@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { authorMarkdown, captureClipboard, expectCopied, jump, ready, renderedIds, settleMotion } from './helpers';
+import { starter } from './starter';
 
 const fence = '```';
 const body = ['const alpha = 1;', '', 'const beta = alpha + 1;', 'const gamma = beta * 2;', 'console.log(gamma);'].join('\n');
@@ -617,7 +618,7 @@ test.describe('reveal-on-click terminal', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 
-  test('the starter ships a real recorded Node capture that is labeled and parseable', async ({ page }) => {
+  test('the starter ships a real recorded Node capture that is labeled and parseable', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'run-and-reveal');
     await expect(page.locator('#run-and-reveal .terminal-label')).toHaveText('Recorded example');
@@ -631,7 +632,7 @@ test.describe('reveal-on-click terminal', () => {
 
 test.describe('side-by-side code and explanation', () => {
   for (const [width, height] of [[1280, 720], [1440, 900], [1920, 1080]]) {
-    test(`the starter code pair shares equal aligned columns at ${width}px`, async ({ page }) => {
+    test(`the starter code pair shares equal aligned columns at ${width}px`, starter, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await ready(page);
       await jump(page, 'compare-code');
@@ -668,7 +669,7 @@ test.describe('side-by-side code and explanation', () => {
   }
 
   for (const scene of [{ name: '390px presentation', path: '?mode=present', width: 390, height: 844 }, { name: 'reading mode', path: '?mode=read', width: 1280, height: 900 }]) {
-    test(`the code pair stacks in reading order with every field reachable in ${scene.name}`, async ({ page }) => {
+    test(`the code pair stacks in reading order with every field reachable in ${scene.name}`, starter, async ({ page }) => {
       await page.setViewportSize({ width: scene.width, height: scene.height });
       await ready(page, scene.path);
       await jump(page, 'compare-code');
@@ -720,7 +721,7 @@ test.describe('side-by-side code and explanation', () => {
   }
 });
 
-test('the starter keeps every earlier slide id and adds the new patterns in order', async ({ page }) => {
+test('the starter keeps every earlier slide id and adds the new patterns in order', starter, async ({ page }) => {
   await ready(page);
   const ids = await renderedIds(page);
   for (const id of ['intro', 'make-it-yours', 'write-in-markdown', 'copyable-code', 'apphost-example', 'rich-architecture', 'model-to-observation',
@@ -729,6 +730,6 @@ test('the starter keeps every earlier slide id and adds the new patterns in orde
   }
   const first = ids.indexOf('apphost-example');
   expect(ids.slice(first, first + 6)).toEqual(['apphost-example', 'apphost-csharp', 'go-workload', 'compare-code', 'run-and-reveal', 'rich-architecture']);
-  expect(ids.slice(ids.indexOf('comparison-layout')).join()).toBe('comparison-layout,transitions,publish-on-push');
+  expect(ids.slice(ids.indexOf('comparison-layout')).join()).toBe('comparison-layout,transitions,guide-start,guide-config,guide-settings,guide-markdown,guide-teach,guide-media,guide-present,guide-publish,publish-on-push');
   expect(new Set(ids).size).toBe(ids.length);
 });

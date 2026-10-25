@@ -20,6 +20,7 @@
     "code": { "style": "slide" },
     "diagrams": {}
   },
+  "slideNumber": { "visible": true, "position": "bottom-left" },
   "social": {
     "image": "assets/social-card.png",
     "alt": "Aspire Deck Template: a Markdown-first reveal.js deck for Aspire talks, with Markdown, code walkthroughs and diagrams. Template author David Pine, davidpine.dev. Source: IEvangelist/aspire-deck-template on GitHub.",

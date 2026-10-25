@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { authorMarkdown, jump, ready, renderedIds, settleMotion } from './helpers';
+import { authorDiagrams, authorMarkdown, jump, ready, renderedIds, settleMotion } from './helpers';
+import { starter } from './starter';
 
 const designed = `<!-- .slide: id="designed" data-kicker="Plan" -->
 ## Make a **plan**
@@ -22,6 +23,7 @@ A paragraph without a kicker.
 <div data-diagram="architecture" data-caption="Custom window title"></div>`;
 
 test('kickers, accented headings and the Steps rail come from native Markdown alone', async ({ page }) => {
+  await authorDiagrams(page);
   await authorMarkdown(page, designed);
   await ready(page);
   await jump(page, 'designed');
@@ -48,7 +50,7 @@ test('kickers, accented headings and the Steps rail come from native Markdown al
   expect(card).toEqual({ radius: '16px', icon: '64px', svg: '32px' });
 });
 
-test('component lists keep their own layout and are not turned into Steps', async ({ page }) => {
+test('component lists keep their own layout and are not turned into Steps', starter, async ({ page }) => {
   await ready(page);
   await jump(page, 'model-to-observation');
   const flow = await page.locator('#model-to-observation ol > li').first().evaluate((item) => getComputedStyle(item, '::before').content);
@@ -56,6 +58,7 @@ test('component lists keep their own layout and are not turned into Steps', asyn
 });
 
 test('code and diagram share one window chrome with a custom title', async ({ page }) => {
+  await authorDiagrams(page);
   await authorMarkdown(page, designed.replace('1. **First.**', '```bash\nnpm test\n```\n\n1. **First.**'));
   await ready(page);
   await jump(page, 'designed');
@@ -115,18 +118,33 @@ test('the menu keeps its heading and controls visible while only the slide list 
   }
 });
 
-test('overview shows every slide as a framed thumbnail with the current one marked', async ({ page }) => {
-  await ready(page);
-  await jump(page, 'make-it-yours');
+// Every top-level slide in the overview, with the one that is showing.
+async function overviewSections(page: Page, target: string) {
+  await jump(page, target);
   await page.keyboard.press('Escape');
   await expect(page.locator('#presentation')).toHaveClass(/overview/);
   const sections = await page.locator('.slides > section').evaluateAll((nodes) => nodes.map((node) => ({
     id: node.id, display: getComputedStyle(node).display, present: node.classList.contains('present'), ring: getComputedStyle(node).boxShadow,
   })));
+  return { sections, current: sections.find((section) => section.present)! };
+}
+
+test('overview shows every slide as a framed thumbnail with the current one marked', starter, async ({ page }) => {
+  await ready(page);
+  const { sections, current } = await overviewSections(page, 'make-it-yours');
   expect(sections.length).toBeGreaterThan(10);
   expect(sections.every((section) => section.display !== 'none')).toBe(true);
-  const current = sections.find((section) => section.present)!;
   expect(current.id).toBe('make-it-yours');
+  expect(sections.filter((section) => section.ring === current.ring)).toHaveLength(1);
+});
+
+test('overview shows every slide as a framed thumbnail with the current one marked in an authored deck', async ({ page }) => {
+  await authorMarkdown(page, ['one', 'two', 'three', 'four'].map((id) => `<!-- .slide: id="${id}" -->\n## Slide ${id}\n`).join('\n---\n\n'));
+  await ready(page);
+  const { sections, current } = await overviewSections(page, 'three');
+  expect(sections.map((section) => section.id)).toEqual(['intro', 'one', 'two', 'three', 'four']);
+  expect(sections.every((section) => section.display !== 'none')).toBe(true);
+  expect(current.id).toBe('three');
   expect(sections.filter((section) => section.ring === current.ring)).toHaveLength(1);
 });
 
@@ -156,6 +174,33 @@ test('every slide prints on exactly one page, including centered statements and 
   expect(new Set(heights).size, `page heights ${heights.join(', ')}`).toBe(1);
 });
 
+test('a print load never prepares the deck before Reveal has built its pages, load after load', async ({ browser }) => {
+  test.setTimeout(120_000);
+  // Reveal moves every slide into a .pdf-page a few animation frames after initialize() resolves, and until then the deck
+  // holds only part of its slides. A boot that takes just long enough is caught in that one-frame window, which busy
+  // machines hit often, so this loads the print view 40 times, four at a time, each in a fresh browser context.
+  const { baseURL } = test.info().project.use;
+  const deck = '<!-- .slide: id="graph" -->\n## A model\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="after" -->\n## After\n';
+  const failures: string[] = [];
+  let next = 0;
+  const load = async (attempt: number) => {
+    const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 900 } });
+    try {
+      const page = await context.newPage();
+      await authorDiagrams(page);
+      await authorMarkdown(page, deck);
+      await page.goto('?print-pdf&theme=light');
+      const state = await (await page.waitForFunction(() => document.documentElement.dataset.deckReady, null, { timeout: 10_000 })).jsonValue();
+      const pages = await page.locator('.pdf-page').count();
+      if (state !== 'true' || pages !== 3) failures.push(`load ${attempt}: deck ${state}, ${pages} pages`);
+    } finally {
+      await context.close();
+    }
+  };
+  await Promise.all(Array.from({ length: 4 }, async () => { while (next < 40) await load(++next); }));
+  expect(failures).toEqual([]);
+});
+
 // How far each connector's centre is from the middle of the gap it bridges (or, when the cards stack, from the
 // card's centre line and the gap above it). Reveal's auto-animate rewrites `transform` on matched elements, so this
 // is measured after a real keyboard-driven transition rather than on a fresh load.
@@ -179,7 +224,7 @@ async function connectorOffsets(page: Page, id: string) {
 
 const worstOffset = (offsets: { dx: number; dy: number }[]) => Math.max(0, ...offsets.flatMap((offset) => [Math.abs(offset.dx), Math.abs(offset.dy)]));
 
-test('flow connectors are bare accent arrows, with no circle, ring or badge', async ({ page }) => {
+test('flow connectors are bare accent arrows, with no circle, ring or badge', starter, async ({ page }) => {
   await ready(page);
   for (const id of ['model-to-observation', 'animate-add-cache']) {
     await jump(page, id);
@@ -200,7 +245,7 @@ test('flow connectors are bare accent arrows, with no circle, ring or badge', as
 });
 
 for (const [width, height] of [[1280, 720], [1920, 1080]]) {
-  test(`flow arrows stay centred in the gap after a real auto-animate transition at ${width}px`, async ({ page }) => {
+  test(`flow arrows stay centred in the gap after a real auto-animate transition at ${width}px`, starter, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await ready(page);
     await jump(page, 'animate-a-model');
@@ -219,7 +264,7 @@ for (const [width, height] of [[1280, 720], [1920, 1080]]) {
   });
 }
 
-test('flow arrows stay centred and point down when the cards stack on a phone', async ({ page }) => {
+test('flow arrows stay centred and point down when the cards stack on a phone', starter, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ready(page);
   await jump(page, 'animate-a-model');
@@ -238,7 +283,7 @@ test('flow arrows stay centred and point down when the cards stack on a phone', 
   expect(stacked.every((offset) => offset.stacked && offset.glyph === '90deg')).toBe(true);
 });
 
-test('reading mode shows every flow arrow, centred', async ({ page }) => {
+test('reading mode shows every flow arrow, centred', starter, async ({ page }) => {
   await ready(page, '?mode=read');
   for (const id of ['model-to-observation', 'animate-a-model', 'animate-add-cache']) {
     const offsets = await connectorOffsets(page, id);

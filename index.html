@@ -16,7 +16,6 @@
         <span class="brand-name" aria-hidden="true">Aspire</span>
       </a>
       <span id="current-title" class="current-title"></span>
-      <output id="slide-position" aria-live="polite"></output>
       <nav aria-label="Presentation controls">
         <button id="previous" type="button" aria-label="Previous slide or fragment" title="Previous"><span data-icon="arrowLeft"></span></button>
         <button id="next" class="next-button" type="button" aria-label="Next slide or fragment"><span class="desktop-label">Next</span><span data-icon="arrowRight"></span></button>
@@ -53,6 +52,7 @@
         <p class="menu-help">Arrow keys or Space to advance. Scroll code without advancing. Press Esc to close this menu.</p>
       </div>
     </dialog>
+    <output id="slide-position" class="slide-badge" data-position="bottom-left" aria-live="polite" aria-atomic="true"></output>
     <p id="deck-status" class="deck-status" role="status"></p>
     <section id="failure" class="failure" role="alert" hidden>
       <h1>Presentation could not load</h1>

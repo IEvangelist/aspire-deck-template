@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { build, preview, type PreviewServer } from 'vite';
 import { parseDeckJson } from '../src/config';
-import { exampleMarkdown, paintedFonts } from './helpers';
+import { architectureDiagram, exampleMarkdown, paintedFonts } from './helpers';
 
 for (const base of ['/', '/another-name/']) {
   test(`production authoring assets, navigation and canonical metadata at ${base}`, async ({ page }, testInfo) => {
@@ -37,6 +37,9 @@ for (const base of ['/', '/another-name/']) {
           ...config,
           presenter: { ...config.presenter, avatar: { src: 'brand/aspire-icon-256.svg', alt: 'Portable image test' } },
         }),
+      }));
+      await page.route(/\/assets\/diagrams-[^/]+\.json$/, (route) => route.fulfill({
+        contentType: 'application/json', body: JSON.stringify({ architecture: architectureDiagram }),
       }));
       await page.route(/\/assets\/slides-[^/]+\.md$/, (route) => route.fulfill({
         contentType: 'text/markdown',
@@ -105,6 +108,17 @@ for (const base of ['/', '/another-name/']) {
       expect(requests.some((url) => url.includes('/beaker-24-'))).toBe(false);
       const count = await page.locator('#slide-list a').count();
       await expect(page.locator('#slide-position')).toHaveText(`1 / ${count}`);
+      // The counter ships in the production bundle: a fixed badge in the configured corner, outside the toolbar.
+      await expect(page.locator('#slide-position')).toHaveAttribute('data-position', config.slideNumber.position);
+      expect(await page.locator('#slide-position').evaluate((badge) => {
+        const rect = badge.getBoundingClientRect();
+        return {
+          layout: getComputedStyle(badge).position,
+          inside: rect.left >= 0 && rect.top >= 0 && rect.right <= document.documentElement.clientWidth && rect.bottom <= innerHeight,
+          inToolbar: badge.closest('#toolbar') !== null,
+          shown: getComputedStyle(badge).display !== 'none',
+        };
+      })).toEqual({ layout: 'fixed', inside: true, inToolbar: false, shown: config.slideNumber.visible });
       const first = await page.locator('#slide-list a').nth(1).getAttribute('data-slide');
       await page.locator('#start-presentation').click();
       await expect(page.locator('#slide-position')).toHaveText(`2 / ${count}`);

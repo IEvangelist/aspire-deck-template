@@ -42,6 +42,39 @@ export async function authorMarkdown(page: Page, source = exampleMarkdown) {
   await page.route(assetRequest('slides.md'), (route) => route.fulfill({ contentType: 'text/markdown', body: source }));
 }
 
+// The model behind the diagram tests: an AppHost and a frontend reach an API that reads a cache, with a routed result path.
+// Tests serve it as diagrams.json, so they never depend on which diagrams a deck's own diagrams.json defines.
+export const architectureDiagram = {
+  title: 'A connected application model',
+  description: 'The AppHost and frontend connect to the API through separate inbound ports. The API reads from a cache, and a routed result path closes the cycle.',
+  width: 1200,
+  height: 480,
+  nodes: [
+    { id: 'model', title: 'AppHost', detail: ['Describe the model'], icon: 'code', x: 40, y: 70, w: 260, h: 110, stage: 0 },
+    { id: 'web', title: 'Frontend', detail: ['Make a request'], icon: 'screen', x: 40, y: 300, w: 260, h: 110, stage: 6 },
+    { id: 'api', title: 'API', detail: ['Accept requests', 'Use dependencies'], icon: 'cloud', x: 440, y: 180, w: 300, h: 140, stage: 2, kind: 'hub' },
+    { id: 'cache', title: 'Cache', detail: ['Keep useful data'], icon: 'database', x: 880, y: 195, w: 280, h: 110, stage: 4 },
+  ],
+  edges: [
+    { id: 'declare', from: 'model', to: 'api', stage: 1, label: 'declares', labelAt: { x: 368, y: 112 }, fromSide: 'right', toSide: 'left' },
+    { id: 'request', from: 'web', to: 'api', stage: 7, label: 'request', labelAt: { x: 368, y: 380 }, fromSide: 'right', toSide: 'left' },
+    { id: 'read', from: 'api', to: 'cache', stage: 3, label: 'reads', labelAt: { x: 806, y: 229 }, fromSide: 'right', toSide: 'left' },
+    { id: 'result', from: 'cache', to: 'api', stage: 5, label: 'result', labelAt: { x: 800, y: 455 }, fromSide: 'bottom', toSide: 'bottom', via: [{ x: 1020, y: 425 }, { x: 590, y: 425 }], kind: 'return' },
+  ],
+};
+
+export async function authorDiagrams(page: Page, diagrams: Record<string, unknown> = { architecture: architectureDiagram }) {
+  await page.route(assetRequest('diagrams.json'), (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(diagrams) }));
+}
+
+// A deck.config.json and slides.md for the page, so a test never depends on the intro fields or slides its deck happens to have.
+export async function authorDeck(page: Page, config: Record<string, unknown>, markdown: string) {
+  await authorMarkdown(page, markdown);
+  await page.route(assetRequest('deck.config.json'), (route) => route.fulfill({
+    contentType: 'application/json', body: JSON.stringify({ title: 'Fixture deck', presenter: { name: 'Presenter' }, ...config }),
+  }));
+}
+
 export async function captureClipboard(page: Page) {
   await page.addInitScript(() => {
     const write = navigator.clipboard.writeText.bind(navigator.clipboard);

@@ -1,9 +1,10 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { jump, ready, renderedIds, settleMotion } from './helpers';
+import { starter } from './starter';
 
 type Exposure = { boxes: string[]; arrows: string[] };
 // Native fragments on slides that are not diagrams: bullet reveals, stepped code lines, and the terminal output.
-const plainFragments: Record<string, number> = { 'reveal-the-story': 3, 'apphost-example': 4, 'run-and-reveal': 1 };
+const plainFragments: Record<string, number> = { 'reveal-the-story': 3, 'apphost-example': 4, 'run-and-reveal': 1, 'guide-config': 4, 'guide-settings': 4 };
 const states: Record<string, Exposure[]> = {
   'rich-architecture': [
     { boxes: ['model'], arrows: [] },
@@ -75,61 +76,76 @@ async function stepFits(page: Page, id: string) {
   expect(errors).toEqual([]);
 }
 
-for (const scene of [
+const walkScenes = [
   { name: 'desktop-light', width: 1280, height: 720, theme: 'light' },
   { name: 'desktop-dark', width: 1280, height: 720, theme: 'dark' },
   { name: 'narrow-dark', width: 617, height: 800, theme: 'dark' },
   { name: 'phone-present-light', width: 390, height: 844, theme: 'light' },
-]) {
-  test(`every slide and every forward/back exposure is correct in ${scene.name}`, async ({ page }, testInfo) => {
-    test.setTimeout(120_000);
-    await page.setViewportSize({ width: scene.width, height: scene.height });
-    await ready(page, `?mode=present&theme=${scene.theme}`);
-    const ids = await renderedIds(page);
-    const counts: number[] = [];
-    for (const [index, id] of ids.entries()) {
-      await settleMotion(page);
-      await expect(page.locator(`#${id}`)).toHaveClass(/present/);
-      await expect(page.locator('#slide-position')).toHaveText(`${index + 1} / ${ids.length}`);
-      const count = await page.locator(`#${id} .fragment`).evaluateAll((nodes) => new Set(nodes.map((node) => node.getAttribute('data-fragment-index'))).size);
-      counts.push(count);
-      const expected = states[id];
-      if (expected) {
-        expect(count).toBe(expected.length - 1);
-        expect(await exposure(page, id), `${id} initial`).toEqual(expected[0]);
-      } else {
-        expect(count).toBe(plainFragments[id] ?? 0);
-      }
-      for (let step = 1; step <= count; step++) {
-        await page.locator('#next').click();
-        await settleMotion(page);
-        if (expected) expect(await exposure(page, id), `${id} forward ${step}`).toEqual(expected[step]);
-        await stepFits(page, id);
-        if (scene.name === 'desktop-dark' && expected) await page.screenshot({ path: testInfo.outputPath(`${id}-step-${step}.png`) });
-      }
-      if (index < ids.length - 1) await page.locator('#next').click();
+];
+
+// Step through every slide of the deck forward and back, one reveal at a time. With `exact`, every step of the starter is held to
+// the tables above. Any other deck is held to what its author can always expect: each slide is reached, every revealed step stays
+// in view, and Back retraces Next.
+async function walkDeck(page: Page, scene: typeof walkScenes[number], testInfo: TestInfo, exact: boolean) {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: scene.width, height: scene.height });
+  await ready(page, `?mode=present&theme=${scene.theme}`);
+  const ids = await renderedIds(page);
+  const counts: number[] = [];
+  for (const [index, id] of ids.entries()) {
+    await settleMotion(page);
+    await expect(page.locator(`#${id}`)).toHaveClass(/present/);
+    await expect(page.locator('#slide-position')).toHaveText(`${index + 1} / ${ids.length}`);
+    const count = await page.locator(`#${id} .fragment`).evaluateAll((nodes) => new Set(nodes.map((node) => node.getAttribute('data-fragment-index'))).size);
+    counts.push(count);
+    const expected = exact ? states[id] : undefined;
+    if (expected) {
+      expect(count).toBe(expected.length - 1);
+      expect(await exposure(page, id), `${id} initial`).toEqual(expected[0]);
+    } else if (exact) {
+      expect(count).toBe(plainFragments[id] ?? 0);
     }
-    for (let index = ids.length - 1; index >= 0; index--) {
-      const id = ids[index];
-      const count = counts[index];
-      const expected = states[id];
+    for (let step = 1; step <= count; step++) {
+      await page.locator('#next').click();
       await settleMotion(page);
-      await expect(page.locator(`#${id}`)).toHaveClass(/present/);
-      await expect(page.locator('#slide-position')).toHaveText(`${index + 1} / ${ids.length}`);
-      if (expected) expect(await exposure(page, id), `${id} returned from next slide`).toEqual(expected.at(-1));
-      for (let step = count - 1; step >= 0; step--) {
-        await page.locator('#previous').click();
-        await settleMotion(page);
-        if (expected) expect(await exposure(page, id), `${id} backward ${step}`).toEqual(expected[step]);
-        await stepFits(page, id);
-      }
-      if (expected) expect(await exposure(page, id)).toEqual(expected[0]);
-      if (index > 0) await page.locator('#previous').click();
+      if (expected) expect(await exposure(page, id), `${id} forward ${step}`).toEqual(expected[step]);
+      await stepFits(page, id);
+      if (scene.name === 'desktop-dark' && expected) await page.screenshot({ path: testInfo.outputPath(`${id}-step-${step}.png`) });
     }
+    if (index < ids.length - 1) await page.locator('#next').click();
+  }
+  for (let index = ids.length - 1; index >= 0; index--) {
+    const id = ids[index];
+    const count = counts[index];
+    const expected = exact ? states[id] : undefined;
+    await settleMotion(page);
+    await expect(page.locator(`#${id}`)).toHaveClass(/present/);
+    await expect(page.locator('#slide-position')).toHaveText(`${index + 1} / ${ids.length}`);
+    if (expected) expect(await exposure(page, id), `${id} returned from next slide`).toEqual(expected.at(-1));
+    for (let step = count - 1; step >= 0; step--) {
+      await page.locator('#previous').click();
+      await settleMotion(page);
+      if (expected) expect(await exposure(page, id), `${id} backward ${step}`).toEqual(expected[step]);
+      await stepFits(page, id);
+    }
+    if (expected) expect(await exposure(page, id)).toEqual(expected[0]);
+    if (index > 0) await page.locator('#previous').click();
+  }
+}
+
+for (const scene of walkScenes) {
+  test(`every slide and every forward/back exposure is correct in ${scene.name}`, starter, async ({ page }, testInfo) => {
+    await walkDeck(page, scene, testInfo, true);
   });
 }
 
-test('auto-animate keeps completed context but exposes the added arrow before its cache box', async ({ page }) => {
+for (const scene of walkScenes.filter(({ name }) => ['desktop-light', 'phone-present-light'].includes(name))) {
+  test(`every slide and every step of the deck stays in view going forward and back in ${scene.name}`, async ({ page }, testInfo) => {
+    await walkDeck(page, scene, testInfo, false);
+  });
+}
+
+test('auto-animate keeps completed context but exposes the added arrow before its cache box', starter, async ({ page }) => {
   await ready(page);
   await jump(page, 'animate-a-model');
   for (let index = 1; index < states['animate-a-model'].length; index++) {
@@ -156,7 +172,7 @@ test('auto-animate keeps completed context but exposes the added arrow before it
   expect(await exposure(page, 'animate-a-model')).toEqual(states['animate-a-model'].at(-1));
 });
 
-test('rapid advance finishes the arrow before exposing its target and rapid rewind leaves no ghosts', async ({ page }) => {
+test('rapid advance finishes the arrow before exposing its target and rapid rewind leaves no ghosts', starter, async ({ page }) => {
   await ready(page);
   await jump(page, 'rich-architecture');
   await page.keyboard.press('Space');
@@ -169,7 +185,7 @@ test('rapid advance finishes the arrow before exposing its target and rapid rewi
   expect(await exposure(page, 'rich-architecture')).toEqual(states['rich-architecture'][0]);
 });
 
-test('solid arrows actually draw before their tip and caption, without exposing the destination', async ({ page }) => {
+test('solid arrows actually draw before their tip and caption, without exposing the destination', starter, async ({ page }) => {
   await ready(page);
   await jump(page, 'rich-architecture');
   await page.locator('#next').click();
@@ -201,7 +217,7 @@ test('solid arrows actually draw before their tip and caption, without exposing 
   await expect(page.locator('#rich-architecture .architecture-svg [data-node="api"]')).not.toBeVisible();
 });
 
-test('named and numeric fragment deep links, reload and history restore exact exposure', async ({ page }) => {
+test('named and numeric fragment deep links, reload and history restore exact exposure', starter, async ({ page }) => {
   await ready(page, '?mode=present#/rich-architecture/2');
   await settleMotion(page);
   expect(await exposure(page, 'rich-architecture')).toEqual(states['rich-architecture'][3]);
@@ -231,7 +247,7 @@ test('named and numeric fragment deep links, reload and history restore exact ex
 });
 
 for (const mode of ['read', 'reduced', 'print']) {
-  test(`${mode} exposes every node, arrow and caption without waiting`, async ({ page }) => {
+  test(`${mode} exposes every node, arrow and caption without waiting`, starter, async ({ page }) => {
     if (mode === 'reduced') await page.emulateMedia({ reducedMotion: 'reduce' });
     if (mode === 'read') await page.setViewportSize({ width: 390, height: 844 });
     await ready(page, mode === 'print' ? '?print-pdf' : `?mode=${mode === 'read' ? 'read' : 'present'}`);

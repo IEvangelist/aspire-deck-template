@@ -2,10 +2,15 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { parseDiagramJson, parseDiagrams } from '../src/diagram-config';
 import { diagramConnections } from '../src/diagram-routes';
-import { assetRequest, authorMarkdown, jump, ready } from './helpers';
+import { architectureDiagram, assetRequest, authorDiagrams, authorMarkdown, jump, ready } from './helpers';
 
-const definitions = parseDiagramJson(readFileSync('diagrams.json', 'utf8'));
-const graph = definitions.architecture;
+const graph = parseDiagrams({ architecture: architectureDiagram }).architecture;
+const richSlide = '<!-- .slide: id="rich-architecture" -->\n## Route a **richer** model\n\n<div data-diagram="architecture"></div>\n';
+
+test('every model in the deck\'s own diagrams.json is valid and routes', () => {
+  const own = parseDiagramJson(readFileSync('diagrams.json', 'utf8'));
+  for (const [name, model] of Object.entries(own)) expect(() => diagramConnections(model), name).not.toThrow();
+});
 
 test('empty diagrams are valid and the generic model has distinct ports and a routed return', () => {
   expect(parseDiagrams({})).toEqual({});
@@ -41,6 +46,7 @@ test('invalid icon and definition types fail with fields', () => {
 });
 
 test('SVG sequences reveal source, arrow, then destination and rewind; repeated instances have unique IDs', async ({ page }) => {
+  await authorDiagrams(page);
   await authorMarkdown(page, '<!-- .slide: id="graph-one" -->\n## Model\n<div data-diagram="architecture"></div>\n\n---\n<!-- .slide: id="graph-two" -->\n## Repeat\n<div data-diagram="architecture"></div>');
   await ready(page);
   await jump(page, 'graph-one');
@@ -68,6 +74,8 @@ test('SVG sequences reveal source, arrow, then destination and rewind; repeated 
 });
 
 test('rich labels fit their padded nodes in both themes without compression', async ({ page }) => {
+  await authorDiagrams(page);
+  await authorMarkdown(page, richSlide);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await ready(page);
   await jump(page, 'rich-architecture');
@@ -94,6 +102,8 @@ test('rich labels fit their padded nodes in both themes without compression', as
 });
 
 test('narrow and reading/static layouts retain every same-data node and relationship', async ({ page }) => {
+  await authorDiagrams(page);
+  await authorMarkdown(page, richSlide);
   await page.setViewportSize({ width: 617, height: 800 });
   await ready(page);
   await jump(page, 'rich-architecture');

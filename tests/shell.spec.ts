@@ -1,10 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
-import { authorMarkdown, captureClipboard, expectCopied, jump, paintedFonts, ready } from './helpers';
+import { expect, test, type Page } from '@playwright/test';
+import { authorDeck, authorMarkdown, captureClipboard, exampleMarkdown, expectCopied, jump, paintedFonts, ready } from './helpers';
+
+// An intro with a role and a deck with a captioned code slide, so a font check never depends on what a deck's own config and slides hold.
+const authorIntroAndCode = (page: Page) => authorDeck(page, { presenter: { name: 'Presenter', role: 'A role' } }, exampleMarkdown);
 
 test('prose and all code roles use the requested self-hosted font families', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', (request) => requests.push(request.url()));
+  await authorIntroAndCode(page);
   await ready(page);
   const faces = await page.evaluate(() => [...document.fonts]
     .filter((font) => font.status === 'loaded')
@@ -16,11 +20,11 @@ test('prose and all code roles use the requested self-hosted font families', asy
   for (const selector of ['body', '#intro h1', '.presenter-role', '#toolbar button']) {
     await expect(page.locator(selector).first()).toHaveCSS('font-family', /^Poppins,/);
   }
-  await jump(page, 'copyable-code');
+  await jump(page, 'code-example');
   for (const selector of ['pre', 'pre code', 'figcaption > span']) {
-    await expect(page.locator(`#copyable-code ${selector}`)).toHaveCSS('font-family', /^"Fira Code",/);
+    await expect(page.locator(`#code-example ${selector}`)).toHaveCSS('font-family', /^"Fira Code",/);
   }
-  await expect(page.locator('#copyable-code .copy-code')).toHaveCSS('font-family', /^Poppins,/);
+  await expect(page.locator('#code-example .copy-code')).toHaveCSS('font-family', /^Poppins,/);
   await page.locator('#menu-toggle').click();
   await expect(page.locator('.menu-controls kbd').first()).toHaveCSS('font-family', /^"Fira Code",/);
   const fonts = requests.filter((url) => /\.(woff2?)(?:\?|$)/.test(url));
@@ -96,6 +100,7 @@ test('print retains Fira Code with light readable colors and complete code bodie
 });
 
 test('actual painted glyphs use Poppins Bold for headlines, Poppins for prose and Fira Code for code', async ({ page }) => {
+  await authorIntroAndCode(page);
   await ready(page);
   const heading = await paintedFonts(page, '#intro h1');
   expect(heading.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
@@ -103,23 +108,24 @@ test('actual painted glyphs use Poppins Bold for headlines, Poppins for prose an
   expect(prose.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Regular')).toBe(true);
   const brand = await paintedFonts(page, '.brand-name');
   expect(brand.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
-  await jump(page, 'apphost-example');
-  const title = await paintedFonts(page, '#apphost-example h2');
+  await jump(page, 'code-example');
+  const title = await paintedFonts(page, '#code-example h2');
   expect(title.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
-  const code = await paintedFonts(page, '#apphost-example pre code');
+  const code = await paintedFonts(page, '#code-example pre code');
   expect(code.every((font) => font.isCustomFont && font.postScriptName.startsWith('FiraCode'))).toBe(true);
 });
 
 test('official-site heading weights and open tracking survive narrow and reading layouts', async ({ page }) => {
+  await authorIntroAndCode(page);
   await ready(page);
   await expect(page.locator('#intro h1')).toHaveCSS('font-weight', '650');
   await expect(page.locator('#intro h1')).toHaveCSS('letter-spacing', '0.84px');
-  await jump(page, 'make-it-yours');
-  await expect(page.locator('#make-it-yours h2')).toHaveCSS('font-weight', '620');
-  await expect(page.locator('#make-it-yours h2')).toHaveCSS('letter-spacing', '0.58px');
+  await jump(page, 'first-idea');
+  await expect(page.locator('#first-idea h2')).toHaveCSS('font-weight', '620');
+  await expect(page.locator('#first-idea h2')).toHaveCSS('letter-spacing', '0.58px');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.keyboard.press('r');
-  const heading = await paintedFonts(page, '#make-it-yours h2');
+  const heading = await paintedFonts(page, '#first-idea h2');
   expect(heading.every((font) => font.isCustomFont && font.postScriptName === 'Poppins-Bold')).toBe(true);
   await expect(page.locator('.brand-name')).not.toBeVisible();
 });

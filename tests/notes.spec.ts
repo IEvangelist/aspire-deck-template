@@ -1,5 +1,6 @@
 import { expect, test, type Frame, type Page } from '@playwright/test';
-import { jump, ready, settleMotion } from './helpers';
+import { authorMarkdown, jump, ready, renderedIds, settleMotion } from './helpers';
+import { starter } from './starter';
 
 // Everything here uses the real Reveal speaker view: a popup window with live current and upcoming previews.
 async function openSpeakerView(page: Page, how: 'key' | 'menu' = 'key') {
@@ -41,6 +42,7 @@ const previewState = (frame: Frame) => frame.evaluate(() => {
     compact: document.documentElement.dataset.compact,
     reading: document.documentElement.dataset.reading,
     toolbarShown: getComputedStyle(document.getElementById('toolbar')!).display !== 'none',
+    badgeShown: getComputedStyle(document.getElementById('slide-position')!).display !== 'none',
     overflow: getComputedStyle(viewport).overflowY,
     scale,
     horizontalScroll: document.documentElement.scrollWidth > innerWidth,
@@ -53,7 +55,27 @@ const notesText = (view: Page) => view.evaluate(() => (document.querySelector('.
 test.describe('the speaker view is usable while presenting', () => {
   test.setTimeout(90_000);
 
-  test('S opens one connected speaker view whose previews match the audience layout', async ({ page }) => {
+  test('S opens a connected speaker view whose previews follow Next and Back, whatever the deck', async ({ page }) => {
+    await ready(page);
+    const ids = await renderedIds(page);
+    const { current, upcoming } = await openSpeakerView(page);
+    for (const [name, frame] of [['current', current], ['upcoming', upcoming]] as const) {
+      expect(await previewState(frame), name).toMatchObject({ receiver: 'true', compact: 'false', reading: 'false', toolbarShown: false, badgeShown: false });
+    }
+    await expect.poll(async () => (await previewState(current)).id).toBe(ids[0]);
+    await expect.poll(async () => (await previewState(upcoming)).id).toBe(ids[1]);
+    await page.bringToFront();
+    await page.locator('#next').click();
+    await settleMotion(page);
+    const now = await page.locator('.slides section.present').last().getAttribute('id');
+    expect(now).toBe(ids[1]);
+    await expect.poll(async () => (await previewState(current)).id, { timeout: 8000 }).toBe(now);
+    await page.locator('#previous').click();
+    await settleMotion(page);
+    await expect.poll(async () => (await previewState(current)).id, { timeout: 8000 }).toBe(ids[0]);
+  });
+
+  test('S opens one connected speaker view whose previews match the audience layout', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'apphost-example');
     const { view, current, upcoming } = await openSpeakerView(page);
@@ -62,7 +84,7 @@ test.describe('the speaker view is usable while presenting', () => {
       const state = await previewState(frame);
       // The previews are narrower than the phone breakpoint, so this is the case that used to fall into compact reading.
       expect(state.width, `${name} preview must be a narrow frame`).toBeLessThan(1000);
-      expect(state, name).toMatchObject({ receiver: 'true', compact: 'false', reading: 'false', toolbarShown: false, overflow: 'hidden', horizontalScroll: false });
+      expect(state, name).toMatchObject({ receiver: 'true', compact: 'false', reading: 'false', toolbarShown: false, badgeShown: false, overflow: 'hidden', horizontalScroll: false });
       expect(state.scale, `${name} preview scales the whole slide canvas`).toBeLessThan(1);
       expect(state.scale).toBeGreaterThan(0.2);
     }
@@ -83,7 +105,7 @@ test.describe('the speaker view is usable while presenting', () => {
     expect(page.context().pages().length).toBe(2);
   });
 
-  test('notes, the clock and a running timer are shown for the current slide', async ({ page }) => {
+  test('notes, the clock and a running timer are shown for the current slide', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'apphost-example');
     const { view } = await openSpeakerView(page, 'menu');
@@ -99,7 +121,7 @@ test.describe('the speaker view is usable while presenting', () => {
     expect(await page.locator('#presentation').evaluate((root) => (root as HTMLElement).innerText)).not.toContain('reference models an API');
   });
 
-  test('Next, Back and every code step stay in sync, across the slide boundary and back again', async ({ page }) => {
+  test('Next, Back and every code step stay in sync, across the slide boundary and back again', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'apphost-example');
     const { view, current } = await openSpeakerView(page);
@@ -140,7 +162,7 @@ test.describe('the speaker view is usable while presenting', () => {
     await sync('toolbar Next');
   });
 
-  test('a reloaded preview is still a native preview and returns to the audience\'s step by itself', async ({ page }) => {
+  test('a reloaded preview is still a native preview and returns to the audience\'s step by itself', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'apphost-example');
     await page.keyboard.press('Space');
@@ -150,7 +172,7 @@ test.describe('the speaker view is usable while presenting', () => {
     await current.evaluate(() => location.reload());
     const reloaded = await previewFrame(view, '#current-slide iframe');
     expect(await reloaded.evaluate(() => location.search)).toContain('receiver');
-    expect(await previewState(reloaded)).toMatchObject({ receiver: 'true', compact: 'false', reading: 'false', toolbarShown: false });
+    expect(await previewState(reloaded)).toMatchObject({ receiver: 'true', compact: 'false', reading: 'false', toolbarShown: false, badgeShown: false });
     // The reloaded page opens on its URL's slide, so it needs no key press to catch up.
     await expect.poll(async () => (await previewState(reloaded)).focus, { timeout: 8000 }).toBe('3');
     await page.bringToFront();
@@ -160,7 +182,7 @@ test.describe('the speaker view is usable while presenting', () => {
     await expect.poll(async () => (await previewState(await previewFrame(view, '#upcoming-slide iframe'))).focus, { timeout: 8000 }).toBe('6');
   });
 
-  test('previews that finish loading late still end on the audience\'s step and the one after it', async ({ page }) => {
+  test('previews that finish loading late still end on the audience\'s step and the one after it', starter, async ({ page }) => {
     test.setTimeout(120_000);
     // The speaker view sends the audience's position to its previews once, when the current preview starts. A preview that
     // is still loading then (a slow network, a busy machine) would otherwise stay on its opening step.
@@ -178,7 +200,7 @@ test.describe('the speaker view is usable while presenting', () => {
     await expect.poll(async () => previewState(upcoming), { timeout: 30_000 }).toMatchObject({ id: 'apphost-example', focus: '4,5' });
   });
 
-  test('opening the speaker view mid-slide never moves the audience, and the previews show this step and the next', async ({ page }) => {
+  test('opening the speaker view mid-slide never moves the audience, and the previews show this step and the next', starter, async ({ page }) => {
     test.setTimeout(120_000);
     await ready(page);
     await jump(page, 'apphost-example');
@@ -199,7 +221,7 @@ test.describe('the speaker view is usable while presenting', () => {
     }
   });
 
-  test('keys pressed in the speaker window drive the audience view', async ({ page }) => {
+  test('keys pressed in the speaker window drive the audience view', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'apphost-example');
     const { view } = await openSpeakerView(page);
@@ -228,7 +250,7 @@ test.describe('the speaker view is usable while presenting', () => {
 test.describe('slide motion is switched off in the speaker view previews', () => {
   test.setTimeout(90_000);
 
-  test('both previews follow a chapter slide and the explicit in/out slide with no transition and no delay', async ({ page }) => {
+  test('both previews follow a chapter slide and the explicit in/out slide with no transition and no delay', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'write-in-markdown');
     const { current, upcoming } = await openSpeakerView(page);
@@ -258,7 +280,7 @@ test.describe('slide motion is switched off in the speaker view previews', () =>
     await jump(page, 'comparison-layout');
     await page.keyboard.press('ArrowRight');
     await expect.poll(async () => (await previewState(current)).id, { timeout: 8000 }).toBe('transitions');
-    await expect.poll(async () => (await previewState(upcoming)).id, { timeout: 8000 }).toBe('publish-on-push');
+    await expect.poll(async () => (await previewState(upcoming)).id, { timeout: 8000 }).toBe('guide-start');
     for (const [name, frame] of [['current', current], ['upcoming', upcoming]] as const) {
       const state = await idle(frame);
       expect(state.root, `${name} preview root`).toMatch(/\bnone\b/);
@@ -279,9 +301,17 @@ test.describe('slide motion is switched off in the speaker view previews', () =>
   });
 });
 
+// Seven top-level slides, the sixth a vertical stack, so that the numeric address #/5/0 is real in any deck.
+const receiverDeck = [
+  ...['one', 'two', 'three', 'four'].map((id) => `<!-- .slide: id="${id}" -->\n## Slide ${id}\n`),
+  '<!-- .slide: id="stack-top" -->\n## A stack\n\n--\n\n<!-- .slide: id="stack-child" -->\n## Its child\n',
+  '<!-- .slide: id="last" -->\n## Last\n',
+].join('\n---\n\n');
+
 test.describe('a ?receiver preview is a native presentation, even in a narrow frame', () => {
   for (const mode of ['', '&mode=read']) {
     test(`a 400px preview${mode ? ' that asks for reading mode' : ''} keeps the scaled canvas and opens a numeric hash`, async ({ page }) => {
+      await authorMarkdown(page, receiverDeck);
       await page.setViewportSize({ width: 400, height: 300 });
       await page.goto(`?receiver&progress=false&history=false&transition=none${mode}#/5/0`);
       await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');

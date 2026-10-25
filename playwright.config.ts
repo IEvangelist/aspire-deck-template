@@ -1,9 +1,13 @@
 import { defineConfig } from '@playwright/test';
+import { starterTag } from './tests/starter';
 
 const external = process.env.DECK_URL;
 
+// `npm test` runs every test that works for any deck. Tests tagged with `starter` (tests/starter.ts) assert this template's
+// own starter slides and run in `npm run test:starter` instead (playwright.starter.config.ts).
 export default defineConfig({
   testDir: './tests',
+  grepInvert: new RegExp(starterTag),
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 0,

@@ -1,12 +1,15 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { iconCatalog, iconVariants } from '../src/icon-catalog';
 import { iconAliases, isIconName, resolveIconName } from '../src/icon-names';
 import { parseDiagrams } from '../src/diagram-config';
 import { assetRequest, authorMarkdown, jump, ready } from './helpers';
 
-const directory = join('node_modules', '@primer', 'octicons', 'build', 'svg');
+// Resolve the installed package as Node does, wherever node_modules is hoisted.
+const octicons = dirname(createRequire(join(process.cwd(), 'package.json')).resolve('@primer/octicons/package.json'));
+const directory = join(octicons, 'build', 'svg');
 const installed = readdirSync(directory).filter((file) => file.endsWith('.svg')).map((file) => file.slice(0, -4)).sort();
 
 test('generated catalog covers every installed icon and exact size variant', () => {

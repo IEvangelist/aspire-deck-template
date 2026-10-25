@@ -1,6 +1,7 @@
 import hljs from 'highlight.js';
 import { expect, test, type Page } from '@playwright/test';
-import { authorMarkdown, jump, ready, renderedIds } from './helpers';
+import { authorDeck, authorMarkdown, jump, ready, renderedIds } from './helpers';
+import { starter } from './starter';
 
 async function settledHeading(page: Page, id: string, index: number, count: number) {
   await expect(page.locator('#slide-position')).toHaveText(`${index + 1} / ${count}`);
@@ -13,9 +14,8 @@ async function settledHeading(page: Page, id: string, index: number, count: numb
   expect(new URL(page.url()).hash).toBe(`#/${id}`);
 }
 
-test('all actual named reading links survive the 1-second Reveal wrapper guard', async ({ page }) => {
-  await page.clock.install();
-  await ready(page, '?mode=read&theme=dark#/intro');
+// Every slide's reading link, followed the way a reader does and still in place after the library's 1-second guard has run.
+async function followReadingLinks(page: Page) {
   const ids = await renderedIds(page);
   for (const [index, id] of ids.entries()) {
     await page.evaluate((target) => { location.hash = `/${target}`; }, id);
@@ -24,8 +24,11 @@ test('all actual named reading links survive the 1-second Reveal wrapper guard',
     await page.clock.runFor(1200);
     await settledHeading(page, id, index, ids.length);
   }
-  const vertical = await page.locator('#slide-list .vertical-slide a').last().getAttribute('data-slide');
-  if (!vertical) throw new Error('Starter deck must demonstrate a vertical slide.');
+  return ids;
+}
+
+// A vertical slide opened directly, left with Previous, re-entered with Next, then another slide opened from the menu.
+async function followVerticalReadingLinks(page: Page, ids: string[], vertical: string) {
   const index = ids.indexOf(vertical);
   await page.goto(`?mode=read&theme=dark#/${vertical}`);
   await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');
@@ -40,9 +43,35 @@ test('all actual named reading links survive the 1-second Reveal wrapper guard',
   await jump(page, ids[1]);
   await page.clock.runFor(1200);
   await settledHeading(page, ids[1], 1, ids.length);
+}
+
+test('all actual named reading links survive the 1-second Reveal wrapper guard', starter, async ({ page }) => {
+  await page.clock.install();
+  await ready(page, '?mode=read&theme=dark#/intro');
+  const ids = await followReadingLinks(page);
+  const vertical = await page.locator('#slide-list .vertical-slide a').last().getAttribute('data-slide');
+  if (!vertical) throw new Error('Starter deck must demonstrate a vertical slide.');
+  await followVerticalReadingLinks(page, ids, vertical);
+});
+
+test('every reading link in the deck survives the 1-second Reveal wrapper guard', async ({ page }) => {
+  await page.clock.install();
+  await ready(page, '?mode=read&theme=dark#/intro');
+  const ids = await followReadingLinks(page);
+  await jump(page, ids[1]);
+  await page.clock.runFor(1200);
+  await settledHeading(page, ids[1], 1, ids.length);
+});
+
+test('reading links into and out of a vertical slide survive the 1-second Reveal wrapper guard', async ({ page }) => {
+  await page.clock.install();
+  await authorMarkdown(page);
+  await ready(page, '?mode=read&theme=dark#/intro');
+  await followVerticalReadingLinks(page, await renderedIds(page), 'deeper-idea');
 });
 
 test('narrow forced presentation is readable and adapts without shrinking desktop type', async ({ page }) => {
+  await authorDeck(page, { presenter: { name: 'Presenter', role: 'A role' } }, '<!-- .slide: id="one" -->\n## One\n\n---\n\n<!-- .slide: id="two" -->\n## Two\n');
   await page.setViewportSize({ width: 617, height: 800 });
   await ready(page);
   await expect(page.locator('html')).toHaveAttribute('data-compact', 'true');
@@ -79,8 +108,12 @@ test('original-style centered content bounds and text-led presenter column', asy
   expect(geometry.centerDelta).toBeLessThan(1);
   expect(geometry.inset).toBeGreaterThanOrEqual(0);
   expect(geometry.columns).toBe(true);
-  await expect(page.locator('.presenter-avatar')).toHaveAttribute('src', /avatar-placeholder\.svg$/);
   await expect(page.locator('#previous .octicon, #next .octicon, #menu-toggle .octicon')).toHaveCount(3);
+});
+
+test('the starter intro shows its placeholder avatar', starter, async ({ page }) => {
+  await ready(page);
+  await expect(page.locator('.presenter-avatar')).toHaveAttribute('src', /avatar-placeholder\.svg$/);
 });
 
 test('native Markdown media alignment works while code stays left-aligned', async ({ page }) => {
@@ -142,7 +175,7 @@ test('every installed supported language can load without a hidden grammar failu
   expect(errors).toEqual([]);
 });
 
-test('editable diagrams reveal box-arrow-box and native auto-animate obeys static modes', async ({ page }) => {
+test('editable diagrams reveal box-arrow-box and native auto-animate obeys static modes', starter, async ({ page }) => {
   await ready(page);
   await jump(page, 'model-to-observation');
   await expect(page.locator('#model-to-observation .diagram-node h3')).toHaveCount(3);

@@ -16,6 +16,14 @@ export interface DeckSocial {
   siteName?: string;
 }
 
+export const slideNumberPositions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+export type SlideNumberPosition = typeof slideNumberPositions[number];
+
+export interface SlideNumber {
+  visible: boolean;
+  position: SlideNumberPosition;
+}
+
 export interface DeckConfig {
   title: string;
   subtitle?: string;
@@ -30,6 +38,7 @@ export interface DeckConfig {
   links: DeckLink[];
   transition: TransitionDefaults;
   chapters: Record<string, ChapterTransition>;
+  slideNumber: SlideNumber;
   social?: DeckSocial;
 }
 
@@ -138,8 +147,25 @@ function parseChapters(value: unknown): Record<string, ChapterTransition> {
   return chapters;
 }
 
+// The slide counter is a badge in one corner. Left out, it is visible at the bottom left.
+function parseSlideNumber(value: unknown): SlideNumber {
+  const settings: SlideNumber = { visible: true, position: 'bottom-left' };
+  if (value === undefined) return settings;
+  const input = object(value, 'slideNumber', ['visible', 'position']);
+  if (input.visible !== undefined) {
+    if (typeof input.visible !== 'boolean') invalid('slideNumber.visible', 'must be true or false.');
+    settings.visible = input.visible;
+  }
+  if (input.position !== undefined) {
+    const position = slideNumberPositions.find((known) => known === input.position);
+    if (!position) invalid('slideNumber.position', `must be one of ${slideNumberPositions.join(', ')}.`);
+    settings.position = position;
+  }
+  return settings;
+}
+
 export function parseDeckConfig(value: unknown): DeckConfig {
-  const config = object(value, 'config', ['title', 'subtitle', 'description', 'presenter', 'event', 'links', 'transition', 'chapters', 'social']);
+  const config = object(value, 'config', ['title', 'subtitle', 'description', 'presenter', 'event', 'links', 'transition', 'chapters', 'slideNumber', 'social']);
   const presenter = object(config.presenter, 'presenter', ['name', 'role', 'organization', 'avatar']);
   let social: DeckConfig['social'];
   if (config.social !== undefined) {
@@ -200,6 +226,7 @@ export function parseDeckConfig(value: unknown): DeckConfig {
     links,
     transition: config.transition === undefined ? {} : transitionSettings(config.transition, 'transition', false) as TransitionDefaults,
     chapters: parseChapters(config.chapters),
+    slideNumber: parseSlideNumber(config.slideNumber),
     social,
   };
 }

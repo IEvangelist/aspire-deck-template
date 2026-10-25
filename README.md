@@ -12,6 +12,9 @@ reveal-on-click command with its recorded output, all from plain Markdown.
 Editable diagram, fragment, auto-animate, and `apphost.mts`, C#, and Go reference slides
 demonstrate the reusable shell. The reference is displayed code, not an app.
 No demo app, .NET SDK, Docker, or Aspire runtime.
+The starter deck also teaches itself: its **Guide** chapter walks through the
+files, every `deck.config.json` setting, Markdown authoring, teaching patterns,
+diagrams and media, presenting, and publishing.
 
 The presentation shell takes its primary style cues from **[aspire.dev](https://aspire.dev/)**:
 heavier Poppins headlines with open tracking and a single accented word, a
@@ -41,6 +44,10 @@ Pages paths, renamed repositories, user/organization root sites, and custom
 domains use the URL and base path reported by `actions/configure-pages`.
 Pull requests and non-default branches validate without deploying.
 
+The workflow's checks are `npm test`, which validates your deck and keeps passing
+after you replace, rename, or remove every starter slide. Only this template's
+own repository also runs `npm run test:starter`; see [Run locally](#run-locally).
+
 A generated repository is an independent copy, **not an automatically
 synchronized fork**. Self-publishing means your pushes publish your deck;
 future changes to this template do not automatically update your copy.
@@ -49,13 +56,20 @@ future changes to this template do not automatically update your copy.
 
 | File | What to edit |
 | --- | --- |
-| `deck.config.json` | Talk title, subtitle/description, presenter, avatar, event, ordered links, slide transitions and chapters, and the share image |
+| `deck.config.json` | Talk title, subtitle/description, presenter, avatar, event, ordered links, slide transitions and chapters, the corner slide counter, and the share image |
 | `slides.md` | All content slides, including notes, fragments, code, and images |
 | `diagrams.json` | Optional named rich SVG graph definitions; `{}` disables unused definitions |
 | `public/assets/` | Your images and other static media |
 
 The root `src/` directory is only the reusable deck shell. You do not need to
 change it to add, remove, reorder, or name slides.
+
+The **Guide** chapter in the starter slides (ids `guide-start` through
+`guide-publish`, between `transitions` and `publish-on-push`) is this document
+in slide form, with presenter notes on each slide. When you replace the starter,
+delete those slides. `npm test` stays green because the tests that check the
+starter's own slides are run only by `npm run test:starter` (see
+[Run locally](#run-locally)).
 
 For a focused guide an AI assistant can follow, see **[SKILL.md](SKILL.md)**.
 It covers authoring, alignment, diagrams, motion, code, and release checks.
@@ -497,6 +511,36 @@ transitions already cover moving between slides, and a second layer would have t
 intercept every way a slide changes (keys, toolbar, history, deep links, the
 speaker view) while staying out of previews, reading, print, and reduced motion.
 
+### Slide counter
+
+A small badge shows the current slide and the total, such as `3 / 29`. It sits in
+a corner of the screen rather than in the toolbar, on its own solid surface, so no
+slide can make it hard to read. Move or hide it with the optional `slideNumber`
+block in `deck.config.json`:
+
+```json
+"slideNumber": { "visible": true, "position": "bottom-left" }
+```
+
+- `position` is `top-left`, `top-right`, `bottom-left` (the default), or
+  `bottom-right`. The top corners sit just below the toolbar.
+- `visible` is `true` (the default) or `false`. `"visible": false` hides the badge
+  completely, including from screen readers.
+- Leave `slideNumber` out, or either field, and you get the default: visible, at the
+  bottom left. Any other field, a `visible` that is not `true` or `false`, or a
+  position that is not one of the four corners stops the build and the page with
+  `deck.config.json: slideNumber...` and the field named.
+- The count follows every slide, including vertical ones. A code step or fragment
+  does not change it. Screen readers hear a polite "Slide N of M". The badge takes
+  no clicks and no focus, and it never animates.
+- Presenting and reading mode show it. Print and the speaker view's two previews
+  never do, whatever you configure.
+- Copy and error messages also appear at the bottom left. Beside a visible
+  bottom-left badge a message stacks just above it; with any other setting it stays
+  where it is, and beside a bottom-right badge it leaves the badge room.
+
+The counter is the deck's own. Reveal's built-in slide number stays off.
+
 ### Alignment, diagrams, icons, and motion
 
 Markdown itself has no image alignment syntax. Reveal's **native attribute
@@ -643,16 +687,31 @@ Open the URL Vite prints. Do not open `index.html` with `file://`.
 
 ```bash
 npm test
+npm run test:starter
 npm run build
 npm run preview
 ```
 
 On a new machine, install the test browser once with
 `npx playwright install chromium` (Linux may need `--with-deps`).
-Tests cover authoring, optional and invalid config, keyboard/menu navigation,
-notes, fragments, copying, code steps and terminal output, accessibility,
-geometry, and root/renamed-path production builds. No app or infrastructure
-is started.
+
+`npm test` validates **your deck**. It checks authoring, optional and invalid
+config, keyboard/menu navigation, notes, fragments, copying, code steps and
+terminal output, the slide counter, accessibility, geometry, and root/renamed-path
+production builds. None of its tests depends on a starter slide id or copy, so it
+keeps passing after you replace, rename, remove, or reorder every starter and
+guide slide. No app or infrastructure is started.
+
+`npm run test:starter` maintains **this template's own shipped examples**: the
+starter slides, their code walkthroughs, diagrams and motion, the speaker notes,
+and the Guide chapter. It then builds and tests a throw-away copy of this project
+with every slide, the config, the diagrams, and the assets replaced by
+`tests/fixtures/generated-copy`, which proves a generated repository stays green
+(`scripts/generated-copy.mjs`). This template's CI runs it; a repository generated
+from the template does not, because its workflow runs `npm test` only. A test that
+asserts a starter id, copy, diagram, or note is passed the `starter` tag from
+`tests/starter.ts`, and `npm test` leaves every tagged test out. Keep the starter
+slides if you like, and run `npm run test:starter` yourself to guard them.
 
 For a non-Pages static host, set `PAGES_BASE_PATH` at build time to its path
 (default `/`). Optionally set `PAGES_URL` to the site's full URL for canonical
@@ -660,7 +719,9 @@ metadata. These are build environment variables, not secrets.
 
 ## Present, read, print
 
-The 56px header provides Back, Next, a slide counter, and Menu.
+The 56px header provides Back, Next, and Menu. The slide counter is a separate
+badge in a corner of the screen; see **Slide counter** above for its position and
+how to hide it.
 **Start presentation** advances to the actual next slide. The menu is a fixed
 panel: the heading and the theme, reading, overview, notes, and print controls
 stay visible while only the slide list scrolls.

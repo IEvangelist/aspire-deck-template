@@ -63,6 +63,9 @@
   --motion-fast: 160ms;
   --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
   --toolbar-height: 56px;
+  --badge-height: 32px;
+  --badge-side: 20px;
+  --badge-edge: 14px;
   --r-background-color: var(--canvas);
   --r-main-color: var(--ink);
 }
@@ -169,12 +172,11 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .brand-name { font-size: 20px; font-weight: 700; letter-spacing: 0.01em; }
 .current-title { flex: 1; min-width: 0; margin-left: 4px; padding-left: 16px; border-left: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500; line-height: 24px; color: var(--secondary); }
 .current-title:empty { display: none; }
-.toolbar nav { display: flex; align-items: center; gap: 8px; }
+.toolbar nav { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .toolbar button { background: transparent; }
 .toolbar button:hover:not(:disabled) { background: var(--surface); border-color: var(--line-strong); }
 .toolbar .next-button { padding: 0 16px 0 18px; border-color: transparent; background: var(--action); color: var(--action-ink); }
 .toolbar .next-button:hover:not(:disabled) { background: var(--action-hover); border-color: transparent; }
-#slide-position { flex-shrink: 0; min-width: 72px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; text-align: center; font: 500 12.5px/1.4 var(--font-code); font-variant-numeric: tabular-nums; color: var(--secondary); }
 
 /* Menu dialog: heading and controls stay put, the slide list scrolls. */
 .deck-menu {
@@ -209,8 +211,41 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .menu-controls kbd { margin-left: auto; padding: 2px 6px; border: 1px solid var(--line); border-radius: 5px; color: var(--secondary); font: 11px/1.4 var(--font-code); }
 .menu-help { margin: 14px 0 0; font-size: 12px; line-height: 1.6; color: var(--secondary); }
 
+/* The slide counter is a fixed badge in one corner, set by deck.config.json (data-position). It paints an opaque surface of its
+   own, so no slide, image or code window beneath it can make it hard to read, and it never takes a click or a focus stop. The top
+   corners sit just below the sticky toolbar. */
+.slide-badge {
+  position: fixed;
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--badge-height);
+  min-width: calc(7ch + 26px);
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  font: 500 14px/1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.slide-badge:empty { display: none; }
+.slide-badge[data-position^='top'] { top: calc(var(--toolbar-height) + var(--badge-edge)); }
+.slide-badge[data-position^='bottom'] { bottom: max(var(--badge-edge), env(safe-area-inset-bottom, 0px)); }
+.slide-badge[data-position$='left'] { left: max(var(--badge-side), env(safe-area-inset-left, 0px)); }
+.slide-badge[data-position$='right'] { right: max(var(--badge-side), env(safe-area-inset-right, 0px)); }
+
 .deck-status { position: fixed; bottom: 14px; left: 20px; z-index: 30; max-width: calc(100% - 40px); margin: 0; padding: 10px 16px; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--surface-strong); box-shadow: var(--shadow-card); color: var(--ink); font-size: 14px; line-height: 1.5; pointer-events: none; }
 .deck-status:empty { display: none; }
+/* Copy and error messages share the bottom left. Beside a visible bottom-left badge the message stacks above it; beside a bottom-right
+   badge it stays where it is and leaves the badge room. The badge precedes the message in the document, so a sibling selector is enough. */
+.slide-badge[data-position='bottom-left']:not([hidden], :empty) ~ .deck-status { bottom: calc(max(var(--badge-edge), env(safe-area-inset-bottom, 0px)) + var(--badge-height) + 8px); }
+.slide-badge[data-position='bottom-right']:not([hidden], :empty) ~ .deck-status { max-width: calc(100% - 2 * var(--badge-side) - 120px); }
 .failure { max-width: 760px; margin: 64px auto; padding: 0 24px; }
 .failure h1 { font-size: 36px; line-height: 1.3; }
 .failure p { line-height: 1.65; overflow-wrap: anywhere; }
@@ -234,13 +269,14 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 }
 :root[data-intro='true'] .reveal::after { opacity: 1; }
 :root[data-print='true'] .reveal::before, :root[data-print='true'] .reveal::after { display: none; }
+:root[data-print='true'] .slide-badge { display: none !important; }
 .reveal .progress { height: 4px; color: var(--brand-primary); }
 .reveal .slides { text-align: left; color: var(--ink); }
 .reveal .slides section { padding: 24px; color: var(--ink); }
 .reveal .slides section.stack { padding: 0; }
 /* The speaker view embeds the deck as its current/upcoming previews: no toolbar, and the full canvas scales to the frame. */
 :root[data-receiver='true'] { --toolbar-height: 0px; }
-:root[data-receiver='true'] .skip-link, :root[data-receiver='true'] .deck-status { display: none !important; }
+:root[data-receiver='true'] .skip-link, :root[data-receiver='true'] .deck-status, :root[data-receiver='true'] .slide-badge { display: none !important; }
 /* A slide's own transition attributes outrank the deck setting, so reading, print, reduced motion and the speaker view's
    previews switch the motion off at the element itself. The authored attributes stay in place for presenting. */
 :root[data-static='true'] .reveal .slides section, :root[data-static='true'] .reveal .backgrounds .slide-background,
@@ -273,6 +309,7 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .reveal img { max-width: 100%; max-height: 360px; width: auto; height: auto; object-fit: contain; }
 .reveal .source-line { font-size: 19px; color: var(--secondary); }
 .reveal .source-line a { display: inline-flex; align-items: center; min-height: max(44px, calc(44px / var(--slide-scale, 1))); vertical-align: middle; }
+.reveal .feature-list a { display: inline-flex; align-items: center; min-height: max(44px, calc(44px / var(--slide-scale, 1))); }
 .reveal .align-left { text-align: left; }
 .reveal .align-center { text-align: center; }
 .reveal .align-right { text-align: right; }
@@ -288,6 +325,8 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .reveal th, .reveal td { padding: 18px 24px; text-align: left; border-bottom: 1px solid var(--line); }
 .reveal tr:last-child > td { border-bottom: 0; }
 .reveal th { background: var(--surface); color: var(--secondary); font-size: 0.8em; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+/* Inline code in a table documents exact syntax, so Fira Code's ligatures, which would draw an HTML comment's dashes as arrows, stay off. */
+.reveal table code { font-variant-ligatures: none; }
 
 /* Lists: accent markers for bullets, an aspire.dev Steps rail for numbered lists. */
 .reveal ul { list-style: none; margin: 28px 0 0; padding: 0; line-height: 1.6; }
@@ -559,7 +598,8 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
   .toolbar { padding: 4px 12px; gap: 8px; }
   .current-title { display: none; }
   .brand-name { display: none; }
-  #slide-position { min-width: 60px; margin-right: auto; padding: 4px 8px; font-size: 12px; }
+  :root { --badge-height: 28px; --badge-side: 12px; }
+  .slide-badge { min-width: calc(7ch + 18px); padding: 0 8px; font-size: 12px; }
   .toolbar nav { gap: 6px; }
   .toolbar button { padding: 0 10px; }
   .toolbar .next-button { padding: 0 12px; }
@@ -651,7 +691,7 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
     --accent-pink: #a3198f;
     --accent-teal: #0f766e;
   }
-  .toolbar, .skip-link, .deck-status, .deck-menu, .copy-code, .reveal .progress, .reveal::before, .reveal::after, .window-dots, .reveal .code-panel figcaption::before { display: none !important; }
+  .toolbar, .skip-link, .deck-status, .slide-badge, .deck-menu, .copy-code, .reveal .progress, .reveal::before, .reveal::after, .window-dots, .reveal .code-panel figcaption::before { display: none !important; }
   .reveal .layout-statement { background: none; }
   .reveal .code-panel figcaption { grid-template-columns: minmax(0, 1fr) auto; }
   .reveal { height: auto; }

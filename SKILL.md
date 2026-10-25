@@ -12,7 +12,8 @@ Aspire identity, readable slide geometry, and deck-only scope.
 
 - `deck.config.json`: title, subtitle, summary, presenter, optional avatar/event,
   an arbitrary ordered list of labeled links, optional slide `transition`
-  defaults with named `chapters`, and an optional `social` link-preview block.
+  defaults with named `chapters`, an optional `slideNumber` counter setting, and
+  an optional `social` link-preview block.
 - `slides.md`: all authored slides and presenter notes.
 - `diagrams.json`: named reusable rich SVG graph definitions; `{}` is valid.
 - `public/assets/`: local images and other static media. Reference files as
@@ -354,15 +355,66 @@ do not use the View Transitions API.
 - Motion is for continuity: a quiet default, perhaps one chapter, an occasional
   explicit slide. Do not animate every slide differently.
 
+## Slide counter
+
+The counter is one fixed badge in a corner of the screen, never part of the toolbar.
+Set it with the optional `slideNumber` object in `deck.config.json`:
+
+```json
+"slideNumber": { "visible": true, "position": "bottom-left" }
+```
+
+- `position`: `top-left`, `top-right`, `bottom-left` (the default), or
+  `bottom-right`. `visible`: `true` (the default) or `false`, which hides the badge
+  completely: `"slideNumber": { "visible": false }`. Omit the object, or either
+  field, for the default.
+- Only those two fields exist. Do not add a color, size, offset, or toolbar option:
+  the badge always uses the solid `--surface-strong` surface, `--ink` text, and a
+  strong border with a soft offset shadow, so it stays readable over any slide.
+  An unknown field, a non-boolean `visible`, or any other position stops the build
+  and the page with `deck.config.json: slideNumber...` and the field named.
+- It is an `output` status with `aria-live="polite"`, `aria-atomic="true"`, and a
+  `Slide N of M` label. It takes no pointer events and no focus, never animates,
+  and is hidden in print and in the speaker view's previews.
+- Copy and error messages share the bottom left: beside a visible bottom-left badge
+  they stack above it, and otherwise they keep their normal place.
+
+## The guide chapter
+
+The starter's slides with ids `guide-start`, `guide-config`, `guide-settings`,
+`guide-markdown`, `guide-teach`, `guide-media`, `guide-present`, and `guide-publish`
+explain the files, every `deck.config.json` field, Markdown authoring, teaching
+patterns, diagrams and media, presenting, and publishing, each with presenter notes.
+They sit between `transitions` and `publish-on-push`. Keep their ids, field names,
+commands, and settings accurate when the template changes; delete the whole
+chapter when a copy no longer needs it. `npm test` does not depend on it: the
+tests that read these slides are tagged `starter` and run only in
+`npm run test:starter`.
+
 ## Check and publish
 
 Use Node 22.12+ or 24 LTS. Run `npm ci`, then `npm run dev`. Do not use `file://`.
 Before delivery run `npm test` and `npm run build`; use `npm run preview` for
 the static candidate.
 
+`npm test` validates the deck in front of you and never depends on a starter slide
+id or copy, so it stays valid after every starter, example, and guide slide is
+replaced, renamed, removed, or reordered. A test that asserts the starter itself (its
+ids, order, code, diagrams, notes, or guide) is passed `starter` from
+`tests/starter.ts`, for example `test('...', starter, async ({ page }) => ...)`, and
+runs only in `npm run test:starter`. That command is for maintaining this template:
+it also builds and tests a copy whose slides, config, diagrams, and assets are all
+replaced by `tests/fixtures/generated-copy` (`scripts/generated-copy.mjs`). The
+Pages workflow runs `npm test` everywhere and `npm run test:starter` only when
+`github.repository` is `IEvangelist/aspire-deck-template`; update that condition if
+the template repository is renamed or moved. Give a new generic test an authored
+deck (`authorMarkdown`, `authorDeck`, `authorDiagrams` in `tests/helpers.ts`)
+instead of the starter's slides.
+
 Check real active text/images/code, not zero-sized inactive slides. Exercise
 desktop/projector light/dark and a narrow viewport, reading mode, named/vertical
-links and counts, Next/Back, notes, copy, reduced motion, and full-content print.
+links and counts, the counter in each corner and hidden, Next/Back, notes, copy,
+reduced motion, and full-content print.
 Check that media/fonts/Markdown/language modules still load under both `/` and
 a renamed project Pages path.
 Walk every slide forward and backward through every reveal, including the

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { authorMarkdown, captureClipboard, contrastOf, expectContrast, expectCopied, jump, ready, renderedIds, settleMotion } from './helpers';
+import { starter } from './starter';
 
 const fence = '```';
 const source = [
@@ -192,7 +193,7 @@ test.describe('contiguous highlight bands round only their ends', () => {
     expect(new Set(colors).size).toBe(1);
   });
 
-  test('the starter walkthrough joins its two-line step into one band', async ({ page }) => {
+  test('the starter walkthrough joins its two-line step into one band', starter, async ({ page }) => {
     await ready(page);
     await jump(page, 'apphost-example');
     await page.keyboard.press('Space');
@@ -291,7 +292,7 @@ test.describe('the on-theme accents are readable in every theme and in print', (
   });
 });
 
-test.describe('the starter examples are accurate and labeled', () => {
+test.describe('the starter examples are accurate and labeled', starter, () => {
   const apphost = [
     'import { createBuilder } from "./.aspire/modules/aspire.mjs";',
     '',

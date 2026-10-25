@@ -1,0 +1,17 @@
+{
+  "pipeline": {
+    "title": "A small pipeline",
+    "description": "A client sends a request to a service, which writes the result to a store.",
+    "width": 1200,
+    "height": 300,
+    "nodes": [
+      { "id": "client", "title": "Client", "detail": ["Sends a request"], "icon": "screen", "x": 40, "y": 90, "w": 260, "h": 110, "stage": 0 },
+      { "id": "service", "title": "Service", "detail": ["Validates it"], "icon": "server", "x": 470, "y": 90, "w": 260, "h": 110, "stage": 2 },
+      { "id": "store", "title": "Store", "detail": ["Keeps the result"], "icon": "database", "x": 900, "y": 90, "w": 260, "h": 110, "stage": 4 }
+    ],
+    "edges": [
+      { "id": "sends", "from": "client", "to": "service", "stage": 1, "label": "sends", "fromSide": "right", "toSide": "left" },
+      { "id": "writes", "from": "service", "to": "store", "stage": 3, "label": "writes", "fromSide": "right", "toSide": "left" }
+    ]
+  }
+}

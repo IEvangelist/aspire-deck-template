@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 45
     permissions:
       contents: read
       pages: read
@@ -30,6 +30,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Check configuration, authoring, presentation, and portable production builds
         run: npm test
+      # The starter slides' own regression tests and the replaced-slides copy check. Every generated repository and fork has a
+      # different github.repository, so only the template's own repository runs them. Update this if the template is renamed.
+      - name: Check the template's starter examples and a copy with every slide replaced
+        if: github.repository == 'IEvangelist/aspire-deck-template'
+        run: npm run test:starter
       - name: Read Pages URL and base path
         id: pages
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name != 'pull_request'

@@ -12,7 +12,7 @@ import '@fontsource/fira-code/latin-600.css';
 import configUrl from '../deck.config.json?url&no-inline';
 import markdownUrl from '../slides.md?url&no-inline';
 import diagramsUrl from '../diagrams.json?url&no-inline';
-import { assetUrl, description, parseDeckJson, type DeckConfig } from './config';
+import { assetUrl, description, parseDeckJson, type DeckConfig, type SlideNumber } from './config';
 import { prepareCode, preloadCodeLanguages, syncCodeFocus } from './code';
 import { iconElement, loadIcons, renderIcons } from './icons';
 import { iconAliases } from './icon-names';
@@ -41,7 +41,7 @@ const menu = element('deck-menu', HTMLDialogElement);
 const menuButton = element('menu-toggle', HTMLButtonElement);
 const previous = element('previous', HTMLButtonElement);
 const next = element('next', HTMLButtonElement);
-const position = element('slide-position', HTMLOutputElement);
+const slideBadge = element('slide-position', HTMLOutputElement);
 const currentTitle = element('current-title', HTMLSpanElement);
 const themeButton = element('theme', HTMLButtonElement);
 const readButton = element('read-mode', HTMLButtonElement);
@@ -73,8 +73,14 @@ function showFailure(error: unknown) {
   element('failure-detail', HTMLParagraphElement).textContent = error instanceof Error ? error.message : String(error);
   element('failure', HTMLElement).hidden = false;
   toolbar.hidden = true;
+  slideBadge.hidden = true;
   root.hidden = true;
   document.documentElement.dataset.deckReady = 'error';
+}
+
+function applySlideNumber(settings: SlideNumber) {
+  slideBadge.dataset.position = settings.position;
+  slideBadge.hidden = !settings.visible;
 }
 
 async function load(url: string, file: string) {
@@ -212,8 +218,8 @@ function synchronize() {
   const index = slides.indexOf(current);
   if (index < 0) return;
   document.documentElement.dataset.intro = String(index === 0);
-  position.value = `${index + 1} / ${slides.length}`;
-  position.setAttribute('aria-label', `Slide ${index + 1} of ${slides.length}`);
+  slideBadge.value = `${index + 1} / ${slides.length}`;
+  slideBadge.setAttribute('aria-label', `Slide ${index + 1} of ${slides.length}`);
   currentTitle.textContent = slideTitle(current, index);
   previous.disabled = index === 0 && (staticMode() || !deck.availableFragments().prev);
   next.disabled = index === slides.length - 1 && (staticMode() || !deck.availableFragments().next);
@@ -355,19 +361,12 @@ function updatePrintLink() {
   element('print-link', HTMLAnchorElement).href = url.href;
 }
 
-function prepareSlides() {
-  slides = [...deck.getSlides()];
-  if (slides.length < 2) throw new Error('slides.md: add at least one content slide.');
-  const ids = new Set<string>();
-  for (const [index, slide] of slides.entries()) {
-    if (!slide.id) slide.id = `slide-${index + 1}`;
-    if (!/^[a-z][a-z\d_-]*$/i.test(slide.id)) {
-      throw new Error(`slides.md: slide id "${slide.id}" must start with a letter and contain only letters, numbers, - or _.`);
-    }
-    if (ids.has(slide.id) || [...document.querySelectorAll('[id]')].filter((node) => node.id === slide.id).length !== 1) {
-      throw new Error(`slides.md: duplicate or reserved slide id "${slide.id}". Choose a unique .slide id; intro is reserved.`);
-    }
-    ids.add(slide.id);
+// Each slide's content goes in a .slide-content wrapper (after its kicker), and local image and background URLs honor the base
+// path. This runs while Reveal loads its plugins, before it starts: in print view Reveal begins laying the pages out inside
+// start(), a few frames before initialize() resolves, and measures each slide as it finds it.
+function wrapSlides() {
+  for (const slide of root.querySelectorAll<HTMLElement>('.slides section')) {
+    if (slide.querySelector('section')) continue;
     const content = document.createElement('div');
     content.className = 'slide-content';
     for (const child of [...slide.childNodes]) {
@@ -385,6 +384,22 @@ function prepareSlides() {
     if (slide.dataset.backgroundImage) {
       slide.dataset.backgroundImage = assetUrl(slide.dataset.backgroundImage, import.meta.env.BASE_URL, location.origin);
     }
+  }
+}
+
+function prepareSlides() {
+  slides = [...deck.getSlides()];
+  if (slides.length < 2) throw new Error('slides.md: add at least one content slide.');
+  const ids = new Set<string>();
+  for (const [index, slide] of slides.entries()) {
+    if (!slide.id) slide.id = `slide-${index + 1}`;
+    if (!/^[a-z][a-z\d_-]*$/i.test(slide.id)) {
+      throw new Error(`slides.md: slide id "${slide.id}" must start with a letter and contain only letters, numbers, - or _.`);
+    }
+    if (ids.has(slide.id) || [...document.querySelectorAll('[id]')].filter((node) => node.id === slide.id).length !== 1) {
+      throw new Error(`slides.md: duplicate or reserved slide id "${slide.id}". Choose a unique .slide id; intro is reserved.`);
+    }
+    ids.add(slide.id);
   }
   element('start-presentation', HTMLAnchorElement).href = `#/${slides[1].id}`;
   for (const link of root.querySelectorAll<HTMLAnchorElement>('a[href^="#/"]')) {
@@ -578,6 +593,7 @@ async function start() {
   const [configSource, markdown, diagramSource] = await Promise.all([load(configUrl, 'deck.config.json'), load(markdownUrl, 'slides.md'), load(diagramsUrl, 'diagrams.json')]);
   const config = parseDeckJson(configSource);
   deckMotion = config.transition;
+  applySlideNumber(config.slideNumber);
   const diagrams = parseDiagramJson(diagramSource);
   if (!markdown.trim()) throw new Error('slides.md: the file is empty. Add a Markdown slide.');
   await loadIcons(Object.keys(iconAliases));
@@ -601,6 +617,7 @@ async function start() {
     document.fonts.load('400 24px "Fira Code"'),
     document.fonts.load('500 18px "Fira Code"'),
   ]);
+  let wrapFailure: unknown;
   deck = new Reveal(root, {
     ...dimensions(),
     margin: 0.07, minScale: 0.15, maxScale: 1.4,
@@ -614,9 +631,26 @@ async function start() {
     autoAnimateEasing: 'cubic-bezier(0.16, 1, 0.3, 1)',
     markdown: { headerIds: false, mangle: false },
     keyboardCondition: () => !menu.open && !focusKeepsKeys(document.activeElement),
-    plugins: [() => markdownPlugin, Notes],
+    plugins: [() => ({
+      ...markdownPlugin,
+      // Reveal starts only once its plugins have loaded, so the slides are wrapped before it can lay anything out. A failure
+      // is kept and thrown below: an error thrown here would leave initialize() waiting for a ready that never comes.
+      init: async (reveal: Reveal.Api) => {
+        await markdownPlugin.init?.(reveal);
+        try {
+          wrapSlides();
+        } catch (error) {
+          wrapFailure = error;
+        }
+      },
+    }), Notes],
   });
+  // In print view Reveal rebuilds every slide into a .pdf-page over a few animation frames, and puts the pages back just before
+  // it fires pdf-ready. Until then deck.getSlides() sees only part of the deck, so everything that works on the slides waits.
+  const printLaidOut = printMode ? new Promise<void>((resolve) => deck.on('pdf-ready', () => resolve())) : undefined;
   await deck.initialize();
+  if (wrapFailure) throw wrapFailure;
+  await printLaidOut;
   root.removeAttribute('role');
   await renderDiagrams(diagrams, root);
   prepareSlides();

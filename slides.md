@@ -477,6 +477,291 @@ speaker view always skip transitions.
 
 ---
 
+<!-- .slide: id="guide-start" class="layout-split" data-kicker="Guide" -->
+## Start with the **map**
+
+Create your repository from the template, then edit two files.
+
+<div class="layout-visual">
+
+```
+deck.config.json  intro, settings
+slides.md         slides, notes
+diagrams.json     optional graphs
+public/assets/    your media
+src/              reusable shell
+```
+<!-- .element: data-caption="Project map" -->
+
+</div>
+
+<div class="layout-visual">
+
+```bash
+npm ci
+npm run dev
+npm test
+npm run build
+npm run preview
+```
+<!-- .element: data-caption="Commands" -->
+
+</div>
+
+Needs Node.js 22.12+ or 24 LTS, but no .NET SDK, Docker, or Aspire runtime. Run `npx playwright install chromium` once; then `npm test` checks your deck and `npm run test:starter` this template's own examples. [README](https://github.com/IEvangelist/aspire-deck-template#readme) and [SKILL.md](https://github.com/IEvangelist/aspire-deck-template/blob/main/SKILL.md) explain more.
+<!-- .element: class="source-line" -->
+
+Note:
+Cue: this guide chapter is the template's own manual. Every slide whose id
+starts with guide- belongs to it, so delete those slides when you replace the
+starter. You edit two files: deck.config.json for the introduction and deck
+settings, and slides.md for every slide, with notes. diagrams.json holds
+optional graph definitions, public/assets holds your images, and src is the
+reusable shell that you never change to add, remove, or reorder slides.
+npm ci installs, npm run dev serves the deck at the URL Vite prints and reloads
+the page when you save a file (never open index.html from disk), npm test
+checks your deck: authoring, accessibility, and the production builds, and it
+stays valid when you replace, rename, or remove every starter slide. npm run
+test:starter maintains this template's own examples and guide; the template's
+CI runs it, so once the starter slides are gone you can ignore it. npm run build
+writes the static site to dist, and npm run preview serves that build. On a
+new machine run npx playwright install chromium once before the first npm test.
+
+---
+
+<!-- .slide: id="guide-config" data-kicker="Guide" -->
+## Describe your **talk**
+
+Only `title` and `presenter.name` are required. Leave out the rest and the intro stays clean.
+
+```json [1,4|2|5|7|8]
+"title": "Your talk title",
+"subtitle": "A tagline under the title",
+"presenter": {
+  "name": "Your name",
+  "avatar": { "src": "assets/you.webp", "alt": "Your photo" }
+},
+"event": { "name": "Your event", "date": "Your date" },
+"links": [{ "label": "Blog", "url": "https://example.com/" }]
+```
+<!-- .element: data-caption="deck.config.json (excerpt)" -->
+
+Also optional: `description`, `presenter.role`, `presenter.organization`, and `event.location`. Links take any labels, in any order.
+<!-- .element: class="source-line" -->
+
+Note:
+Cue: the highlight starts on the two required lines, title and presenter.name.
+Each Next adds one optional part: the subtitle, the avatar, the event, then the
+links. An avatar needs both src and alt, and src is relative to public/, so
+assets/you.webp means public/assets/you.webp. Links take any labels in any
+order; use [] or leave out links, event, or avatar to remove them. The
+description, role, organization, and location are optional text. Invalid
+configuration stops the build and the page with the file and field named. Do
+not repeat the generated introduction in slides.md.
+
+---
+
+<!-- .slide: id="guide-settings" data-kicker="Guide" -->
+## Tune how it **behaves**
+
+Optional settings for motion, the slide counter, and link previews.
+
+```json [1|2|3|4|5-8]
+"description": "Search and link-preview text; not shown on slides",
+"transition": { "style": "fade", "speed": "fast" },
+"chapters": { "code": { "style": "slide" } },
+"slideNumber": { "visible": true, "position": "bottom-left" },
+"social": {
+  "image": "assets/social-card.png",
+  "alt": "Describe the card, including its text"
+}
+```
+<!-- .element: data-caption="deck.config.json (excerpt)" -->
+
+The counter sits in `top-left`, `top-right`, `bottom-left` (the default), or `bottom-right`. `"visible": false` hides it. `social` also takes `title`, `description`, and `siteName`.
+<!-- .element: class="source-line" -->
+
+Note:
+Cue: each Next highlights one setting. The description is search and
+link-preview text only; it never appears on a slide. The transition is the deck
+default, and chapters are named groups that a slide starts with data-chapter;
+the most specific setting wins, deck then chapter then the slide's own
+data-transition, as the previous Motion slide shows. slideNumber moves or hides
+the corner counter: position is top-left, top-right, bottom-left, or
+bottom-right, visible is true or false, and print and the speaker view's
+previews never show it. social turns a PNG in public/assets into the Open Graph
+and Twitter card: image and alt go together, and title, description, and
+siteName are optional. The image tags appear once the site URL is known, which
+the Pages workflow supplies. A copy of this template must replace the starter
+card with its own.
+
+---
+
+<!-- .slide: id="guide-markdown" data-kicker="Guide" -->
+## Write every **slide**
+
+| Write | You get |
+| --- | --- |
+| `---` or `--` on its own line | A new slide, or a vertical one |
+| `<!-- .slide: id="idea" -->` | A stable link, `#/idea` |
+| `Notes:` and then your text | Speaker notes, public on the site |
+| `<!-- .element: class="fragment" -->` | One step per advance |
+| `layout-split`, `align-center` | Columns and alignment |
+| A code fence with `data-caption` | A titled window with Copy |
+
+Nested `<section>` elements make vertical slides, so use `layout-split` or `layout-comparison` for columns. See the [Markdown reference](https://revealjs.com/markdown/).
+<!-- .element: class="source-line" -->
+
+Note:
+Cue: one row per authoring move. The official Reveal Markdown plugin renders
+slides.md, so there is no custom syntax. Three dashes start a horizontal slide
+and two dashes a vertical one that Down reaches; the menu and counter include
+both. An id in the slide comment keeps links stable when you reorder slides:
+it must be unique, start with a letter, and avoid intro and the shell's own
+ids. A line that starts with Note or Notes and a colon begins the speaker notes,
+which stay off the audience's screen but are published with slides.md, so never
+write a secret there. A fragment class reveals one item per advance, and
+reading, print, and reduced motion show everything. The layout presets are
+layout-statement, layout-split, and layout-comparison, and align-left,
+align-center, and align-right align an image or a whole slide. Columns go in
+layout-copy and layout-visual groups: a nested section element is a vertical
+slide, not a column. A fenced block takes data-caption for its window title,
+and Copy always keeps the exact source.
+
+---
+
+<!-- .slide: id="guide-teach" data-kicker="Guide" data-accent="cyan" -->
+## Teach with **patterns**
+
+- [Step through the lines](#/apphost-example) with `[1|3-5|7]`
+- [Color-code the packages](#/apphost-csharp) with `data-pkg-cyan`
+- [Show files side by side](#/compare-code) with `layout-split`
+- [Reveal a command's output](#/run-and-reveal) with `data-terminal`
+
+<!-- .element: class="feature-list" -->
+
+Package colors take `data-pkg`, `data-add`, `data-apis`, and `data-lines`. A mistake stops the load and names the slide.
+
+Note:
+Cue: four patterns, each a live slide you can open from this list. Step
+through the lines puts a bracketed list after the language, such as [1|3-5|7],
+where each bar is one Next. Package colors label which integration package owns
+each API: data-pkg or data-add names the package, data-apis lists the
+identifiers it owns, and data-lines optionally limits the rail, in purple, cyan,
+pink, or teal. Side by side reuses layout-split with two layout-visual groups,
+so each code panel keeps its own caption and Copy. A recorded command puts
+data-terminal on the command fence and the complete, real output in the next
+fence; one Next reveals it, and the label stays on screen because nothing runs
+on the page. A step list outside the block, an unknown color, an API that is not
+in the code, or a missing output stops the load with the slide named.
+
+---
+
+<!-- .slide: id="guide-media" data-kicker="Guide" data-accent="pink" -->
+## Diagrams and **media**
+
+Name a graph in `diagrams.json`, then place it, or an image, in Markdown.
+
+```markdown
+<div data-diagram="architecture"></div>
+
+![Team photo](assets/team.webp)
+```
+<!-- .element: data-caption="slides.md" -->
+
+- `stage` numbers in `diagrams.json` reveal boxes and arrows in order. Narrow screens get an ordered flow from the same definition.
+- Files live in `public/assets/`. Write `assets/team.webp`, not `public/assets/` or a repository URL, so the deck works under any base path. Always add alt text.
+
+Note:
+Cue: diagrams.json holds named definitions, and a div with data-diagram puts
+one into a slide. Each node and edge can carry a stage number: stage 0 is
+visible at first and each higher stage is one Next, so an arrow arrives before
+the box it points to. Narrow screens and reading mode derive an ordered
+node-and-arrow flow from the same definition, so nothing shrinks. Media lives
+in public/assets and is referenced as assets/team.webp, which stays correct on
+the root site and under a renamed project Pages path; do not prefix public/ or
+hard-code a repository URL. Images keep their aspect ratio, and alt text should
+describe what the image shows. Icon names in slides and diagrams come from the
+bundled Octicons catalog.
+
+---
+
+<!-- .slide: id="guide-present" data-kicker="Guide" -->
+## Present **your way**
+
+<div class="card-row">
+  <div class="card">
+    <span data-icon="screen"></span>
+    <h3>Navigate</h3>
+    <p>Back, Next, and Menu, or <kbd>Space</kbd> and the arrows. <kbd>Esc</kbd> shows every slide.</p>
+  </div>
+  <div class="card" data-accent="cyan">
+    <span data-icon="note"></span>
+    <h3>Speak</h3>
+    <p><kbd>S</kbd> opens the speaker view with your notes. Notes are public.</p>
+  </div>
+  <div class="card" data-accent="pink">
+    <span data-icon="book"></span>
+    <h3>Read or print</h3>
+    <p><kbd>R</kbd> reads, <kbd>T</kbd> switches theme. Print shows every step.</p>
+  </div>
+</div>
+
+The counter follows `slideNumber`. Motion resolves deck, then chapter, then slide, and never runs in reading, print, or the speaker view's previews.
+<!-- .element: class="source-line" -->
+
+Note:
+Cue: three ways you will use the deck. Navigate: Back, Next, and Menu live in
+the 56px toolbar, Space and the arrow keys advance through steps and slides,
+Esc shows the overview, every slide id is a link, and a link such as
+#/guide-start/2 restores a reveal step after a reload. Speak: S, or Menu then
+Speaker notes, opens Reveal's own speaker view with the current slide, what
+Next will show, your notes, a clock, and a timer; allow pop-ups. Notes are
+hidden from the audience but published with slides.md, so they are public, not
+confidential. Read: R switches reading mode and T the theme, and narrow screens
+start in reading mode. The counter is a badge whose corner comes from
+slideNumber; presenting and reading show it, while print and the speaker view's
+previews hide it. Reading, print, reduced motion, and those previews never
+animate, whatever the transition settings.
+
+---
+
+<!-- .slide: id="guide-publish" class="layout-comparison" data-kicker="Guide" -->
+## Publish and **share**
+
+Push to your default branch and the Pages workflow checks, builds, and publishes your deck.
+
+<div class="comparison-columns">
+  <div class="comparison-panel">
+    <h3><span data-icon="globe"></span>Your site's preview</h3>
+    <p>Automatic. The <code>social</code> block becomes the Open Graph and Twitter card. Replace the starter card with yours.</p>
+  </div>
+  <div class="comparison-panel">
+    <h3><span data-icon="github"></span>GitHub's preview</h3>
+    <p>Manual, once. <strong>Settings &gt; Social preview &gt; Edit &gt; Upload an image</strong>, 1280 &times; 640, under 1 MB.</p>
+  </div>
+</div>
+
+In a new repository, set **Settings > Pages > Source** to **GitHub Actions** once. Project paths and custom domains need no edits.
+<!-- .element: class="source-line" -->
+
+Note:
+Cue: two different previews. The one in your deck is automatic: the social
+block in deck.config.json becomes Open Graph and Twitter tags when the workflow
+builds the site, using the URL and base path that actions/configure-pages
+reports, so renamed repositories, root sites, and custom domains need no edits.
+The image and text must be yours: replace public/assets/social-card.png and
+every social field, or delete the block for a text-only preview. GitHub's own
+repository preview is separate and manual: open Settings, then Social preview,
+then Edit, then Upload an image, with a 1280 by 640 picture under 1 MB, as
+GitHub's documentation describes. Committing the file does not set it. In a
+repository created from this template, set Settings, Pages, Source to GitHub
+Actions once, because that setting is not copied. Pull requests and other
+branches validate without deploying, and copies are independent: they do not
+receive template updates.
+
+---
+
 <!-- .slide: id="publish-on-push" data-kicker="Publish" -->
 ## From your repo to the **room**
 

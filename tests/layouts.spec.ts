@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { authorMarkdown, captureClipboard, expectCopied, jump, ready, renderedIds } from './helpers';
+import { authorDiagrams, authorMarkdown, captureClipboard, expectCopied, jump, ready, renderedIds } from './helpers';
+import { starter } from './starter';
 
 const comparison = `<!-- .slide: id="compare" class="layout-comparison" -->
 ## Compare like with like
@@ -78,6 +79,7 @@ for (const width of [1280, 1440]) {
   test(`split graph uses actual container fallback and reachable content at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
+    await authorDiagrams(page);
     await authorMarkdown(page, '<!-- .slide: id="column-graph" class="layout-split" -->\n## A model beside context\n<div class="layout-copy"><p>A short explanation.</p></div>\n<div class="layout-visual" data-diagram="architecture"></div>');
     await ready(page);
     await page.locator('#start-presentation').click();
@@ -106,7 +108,7 @@ for (const width of [1280, 1440]) {
   });
 }
 
-test('starter presets preserve source contrast and visible controls in both themes', async ({ page }) => {
+test('starter presets preserve source contrast and visible controls in both themes', starter, async ({ page }) => {
   await ready(page);
   for (const theme of ['light', 'dark']) {
     if (await page.locator('html').getAttribute('data-theme') !== theme) await page.keyboard.press('t');

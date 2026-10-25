@@ -1,7 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { parseDeckConfig } from '../src/config';
 import { checkSpeed, checkStyle } from '../src/transitions';
-import { assetRequest, authorMarkdown, ready, settleMotion } from './helpers';
+import { authorDeck, authorMarkdown, ready, settleMotion } from './helpers';
+import { starter } from './starter';
 
 const minimal = { title: 'A talk', presenter: { name: 'A presenter' } };
 
@@ -66,13 +67,6 @@ test.describe('transition settings in deck.config.json', () => {
     expect(checkSpeed(' slow ', 'where')).toBe('slow');
   });
 });
-
-async function authorDeck(page: Page, config: Record<string, unknown>, markdown: string) {
-  await authorMarkdown(page, markdown);
-  await page.route(assetRequest('deck.config.json'), (route) => route.fulfill({
-    contentType: 'application/json', body: JSON.stringify({ title: 'Fixture deck', presenter: { name: 'Presenter' }, ...config }),
-  }));
-}
 
 const fixture = `<!-- .slide: id="a" -->
 ## A
@@ -185,7 +179,7 @@ test.describe('deck, chapter and slide transition precedence', () => {
     expect(Object.values(await attributes(page)).flat().every((value) => value === null)).toBe(true);
   });
 
-  test('the starter shows the deck default, a Code chapter override and one explicit in/out slide', async ({ page }) => {
+  test('the starter shows the deck default, a Code chapter override and one explicit in/out slide', starter, async ({ page }) => {
     await ready(page);
     await expect(page.locator('#presentation')).toHaveClass(/\bfade\b/);
     const found = await attributes(page);
@@ -241,41 +235,82 @@ async function watchMotion(page: Page) {
 
 const motion = (page: Page) => page.evaluate(() => (window as unknown as { __motion: string[] }).__motion.slice());
 
-test.describe('slides really animate while presenting', () => {
-  test('the deck fade leaves, the Code chapter slides in, and the explicit slide enters and leaves differently', async ({ page }) => {
-    await ready(page, '?mode=present#/write-in-markdown');
+// The slides the motion tests walk: the first one, one the chapter slides in, that slide's neighbour, one after the chapter, and one
+// with its own in/out pair. The starter has them, and so does a deck the test authors, so the motion code is covered either way.
+interface Scene { first: string; chapter: string; neighbour: string; before: string; explicit: string }
+
+const authoredMotion = `<!-- .slide: id="calm" -->
+## A calm start
+
+---
+
+<!-- .slide: id="moving" data-chapter="code" -->
+## The chapter slides in
+
+---
+
+<!-- .slide: id="settled" data-chapter="calm" -->
+## The deck default returns
+
+---
+
+<!-- .slide: id="explicit" data-transition="slide-in fade-out" -->
+## One slide with its own pair
+
+---
+
+<!-- .slide: id="after" -->
+## After
+`;
+
+const scenes: { suffix: string; tags: { tag?: string }; scene: Scene; open: (page: Page) => Promise<void> }[] = [
+  { suffix: '', tags: starter, open: async () => {},
+    scene: { first: 'write-in-markdown', chapter: 'copyable-code', neighbour: 'apphost-example', before: 'comparison-layout', explicit: 'transitions' } },
+  { suffix: ' in an authored deck', tags: {},
+    scene: { first: 'calm', chapter: 'moving', neighbour: 'settled', before: 'settled', explicit: 'explicit' },
+    open: (page) => authorDeck(page, { transition: { style: 'fade', speed: 'fast', background: 'none' }, chapters: { code: { style: 'slide' }, calm: {} } }, authoredMotion) },
+];
+
+for (const { suffix, tags, scene, open } of scenes) test.describe(`slides really animate while presenting${suffix}`, () => {
+  test('the deck fade leaves, the Code chapter slides in, and the explicit slide enters and leaves differently', tags, async ({ page }) => {
+    await open(page);
+    await ready(page, `?mode=present#/${scene.first}`);
+    // The first slide has just entered: let that settle, so the key press below leaves a slide that is fully showing.
+    await settleMotion(page);
     await watchMotion(page);
     await page.keyboard.press('ArrowRight');
-    await expect.poll(() => motion(page)).toContain('copyable-code:transform');
+    await expect.poll(() => motion(page)).toContain(`${scene.chapter}:transform`);
     await settleMotion(page);
     let log = await motion(page);
-    expect(log).toContain('write-in-markdown:opacity');
-    expect(log, 'the deck default fade never moves the slide that leaves').not.toContain('write-in-markdown:transform');
-    const durations = await page.locator('#copyable-code').evaluate((slide) => getComputedStyle(slide).transitionDuration.split(',').map((value) => value.trim()));
+    expect(log).toContain(`${scene.first}:opacity`);
+    expect(log, 'the deck default fade never moves the slide that leaves').not.toContain(`${scene.first}:transform`);
+    const durations = await page.locator(`#${scene.chapter}`).evaluate((slide) => getComputedStyle(slide).transitionDuration.split(',').map((value) => value.trim()));
     expect(new Set(durations), 'fast is 0.4 seconds').toEqual(new Set(['0.4s']));
 
-    await ready(page, '?mode=present#/comparison-layout');
+    await ready(page, `?mode=present#/${scene.before}`);
+    await settleMotion(page);
     await watchMotion(page);
     await page.keyboard.press('ArrowRight');
-    await expect.poll(() => motion(page)).toContain('transitions:transform');
+    await expect.poll(() => motion(page)).toContain(`${scene.explicit}:transform`);
     await settleMotion(page);
     log = await motion(page);
-    expect(log, 'the slide-in half moves the explicit slide').toContain('transitions:transform');
-    expect(log, 'the deck default fade fades the slide before it').toContain('comparison-layout:opacity');
+    expect(log, 'the slide-in half moves the explicit slide').toContain(`${scene.explicit}:transform`);
+    expect(log, 'the deck default fade fades the slide before it').toContain(`${scene.before}:opacity`);
 
     await page.evaluate(() => { (window as unknown as { __motion: string[] }).__motion.length = 0; });
     await page.keyboard.press('ArrowRight');
-    await expect.poll(() => motion(page)).toContain('transitions:opacity');
+    await expect.poll(() => motion(page)).toContain(`${scene.explicit}:opacity`);
     await settleMotion(page);
     log = await motion(page);
-    expect(log, 'the fade-out half only fades the explicit slide').not.toContain('transitions:transform');
-    expect(await page.locator('#transitions').evaluate((slide) => getComputedStyle(slide).visibility)).toBe('hidden');
+    expect(log, 'the fade-out half only fades the explicit slide').not.toContain(`${scene.explicit}:transform`);
+    expect(await page.locator(`#${scene.explicit}`).evaluate((slide) => getComputedStyle(slide).visibility)).toBe('hidden');
   });
 
-  test('the slide that is not showing cannot be reached, even though it stays rendered to animate', async ({ page }) => {
-    await ready(page, '?mode=present#/copyable-code');
+  test('the slide that is not showing cannot be reached, even though it stays rendered to animate', tags, async ({ page }) => {
+    await open(page);
+    await ready(page, `?mode=present#/${scene.chapter}`);
     await settleMotion(page);
-    const neighbour = page.locator('#apphost-example');
+    const neighbour = page.locator(`#${scene.neighbour}`);
     await expect(neighbour).toBeHidden();
     expect(await neighbour.evaluate((slide) => [slide.hasAttribute('hidden'), slide.getAttribute('aria-hidden'), getComputedStyle(slide).visibility, getComputedStyle(slide).pointerEvents])).toEqual([true, 'true', 'hidden', 'none']);
     for (let press = 0; press < 12; press++) {
@@ -285,31 +320,33 @@ test.describe('slides really animate while presenting', () => {
   });
 });
 
-test.describe('every static context switches slide motion off at the element', () => {
-  const idle = async (page: Page) => page.evaluate(() => {
+for (const { suffix, tags, scene, open } of scenes) test.describe(`every static context switches slide motion off at the element${suffix}`, () => {
+  const idle = async (page: Page) => page.evaluate((explicit) => {
     const properties = [...new Set([...document.querySelectorAll('.slides section, .backgrounds .slide-background')].map((node) => getComputedStyle(node).transitionProperty))];
-    return { root: document.getElementById('presentation')!.className, properties, explicit: document.getElementById('transitions')!.getAttribute('data-transition') };
-  });
+    return { root: document.getElementById('presentation')!.className, properties, explicit: document.getElementById(explicit)!.getAttribute('data-transition') };
+  }, scene.explicit);
 
   for (const [name, query] of [['reading mode', '?mode=read'], ['print', '?print-pdf'], ['speaker-view previews', '?mode=present&receiver&history=false&transition=none&backgroundTransition=none']] as const) {
-    test(`${name} keeps the authored attributes but runs no transition`, async ({ page }) => {
+    test(`${name} keeps the authored attributes but runs no transition`, tags, async ({ page }) => {
+      await open(page);
       await ready(page, query);
       expect(await idle(page)).toMatchObject({ properties: ['none'], explicit: 'slide-in fade-out' });
       expect((await idle(page)).root).toMatch(/\bnone\b/);
     });
   }
 
-  test('reduced motion moves between slides, including the explicit in/out slide, with no transition and no delay', async ({ page }) => {
+  test('reduced motion moves between slides, including the explicit in/out slide, with no transition and no delay', tags, async ({ page }) => {
+    await open(page);
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await ready(page, '?mode=present#/comparison-layout');
+    await ready(page, `?mode=present#/${scene.before}`);
     await watchMotion(page);
     expect(await idle(page)).toMatchObject({ properties: ['none'], explicit: 'slide-in fade-out' });
     await page.keyboard.press('ArrowRight');
-    const arrived = await page.evaluate(() => {
-      const incoming = document.getElementById('transitions')!;
-      const leaving = document.getElementById('comparison-layout')!;
+    const arrived = await page.evaluate(([explicit, before]) => {
+      const incoming = document.getElementById(explicit)!;
+      const leaving = document.getElementById(before)!;
       return [getComputedStyle(incoming).opacity, getComputedStyle(incoming).visibility, getComputedStyle(incoming).transform, getComputedStyle(leaving).visibility];
-    });
+    }, [scene.explicit, scene.before]);
     expect(arrived, 'the new slide is whole and the old one gone on the very next frame').toEqual(['1', 'visible', 'none', 'hidden']);
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('ArrowLeft');
@@ -317,10 +354,11 @@ test.describe('every static context switches slide motion off at the element', (
     expect(await motion(page)).toEqual([]);
   });
 
-  test('switching modes without a reload restores the authored attributes and the motion', async ({ page }) => {
-    await ready(page, '?mode=present#/write-in-markdown');
+  test('switching modes without a reload restores the authored attributes and the motion', tags, async ({ page }) => {
+    await open(page);
+    await ready(page, `?mode=present#/${scene.first}`);
     const authored = await attributes(page);
-    const properties = () => page.locator('#copyable-code').evaluate((slide) => getComputedStyle(slide).transitionProperty);
+    const properties = () => page.locator(`#${scene.chapter}`).evaluate((slide) => getComputedStyle(slide).transitionProperty);
     await expect(page.locator('#presentation')).toHaveClass(/\bfade\b/);
     expect(await properties()).toContain('transform');
 
@@ -347,6 +385,6 @@ test.describe('every static context switches slide motion off at the element', (
     expect(await attributes(page)).toEqual(authored);
     await watchMotion(page);
     await page.keyboard.press('ArrowRight');
-    await expect.poll(() => motion(page)).toContain('copyable-code:transform');
+    await expect.poll(() => motion(page)).toContain(`${scene.chapter}:transform`);
   });
 });
