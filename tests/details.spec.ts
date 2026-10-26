@@ -229,6 +229,51 @@ test.describe('a presentation with a slide that has details', () => {
     }
   });
 
+  test('whenever the dialog stops being open, its content is already back in the details', async ({ page }) => {
+    await open(page);
+    // Record the very moment the dialog's open attribute goes. A poll only sees a later moment, and on a busy machine a queued close
+    // event can land between the two, which is how this once passed locally and failed on a slower runner.
+    await page.evaluate(() => {
+      const dialog = document.getElementById('slide-details') as HTMLDialogElement;
+      const details = document.querySelector('#history details')!;
+      const moments: boolean[] = [];
+      (window as unknown as { closings: boolean[] }).closings = moments;
+      new MutationObserver(() => {
+        if (!dialog.open) moments.push(details.querySelector(':scope > .details-body') !== null && dialog.querySelector('.details-body') === null);
+      }).observe(dialog, { attributes: true, attributeFilter: ['open'] });
+    });
+    const ways = ['Escape', 'the Close button', 'a slide change', 'the reading mode', 'the overview', 'print', 'leaving the page'];
+    for (const [index, way] of ways.entries()) {
+      await summaryOf(page).click();
+      await expect(dialogOf(page), way).toBeVisible();
+      if (way === 'Escape') await page.keyboard.press('Escape');
+      else if (way === 'the Close button') await closeOf(page).click();
+      else if (way === 'a slide change') await page.evaluate(() => { location.hash = '#/after'; });
+      else if (way === 'the reading mode') await page.evaluate(() => document.getElementById('read-mode')!.click());
+      else if (way === 'the overview') await page.evaluate(() => document.getElementById('overview')!.click());
+      else if (way === 'print') await page.emulateMedia({ media: 'print' });
+      else await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })));
+      await expect(dialogOf(page), way).toBeHidden();
+      // And the page back as it was, for the next way.
+      if (way === 'a slide change') {
+        await page.evaluate(() => { location.hash = '#/history'; });
+        await expect(page.locator('#history')).toBeVisible();
+      } else if (way === 'the reading mode') {
+        await page.evaluate(() => document.getElementById('read-mode')!.click());
+        await expect(page.locator('html')).toHaveAttribute('data-reading', 'false');
+      } else if (way === 'the overview') {
+        await page.keyboard.press('Escape');
+        await expect(page.locator('main.reveal')).not.toHaveClass(/overview/);
+      } else if (way === 'print') {
+        await page.emulateMedia({ media: 'screen' });
+        await expect(page.locator('#history details a')).toBeHidden();
+      }
+      expect(await page.evaluate(() => (window as unknown as { closings: boolean[] }).closings), `${way}: the content was back the moment the dialog closed`)
+        .toEqual(Array(index + 1).fill(true));
+      expect(await wrapperHome(page), way).toEqual({ summaries: 1, others: 1, open: false });
+    }
+  });
+
   test('focus stays within the dialog, never reaches the page behind it, and returns to the summary', async ({ page }) => {
     await open(page);
     await summaryOf(page).click();

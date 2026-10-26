@@ -161,7 +161,10 @@ export function prepareDetails(root: HTMLElement, panel: HTMLDialogElement, opti
     wired = true;
     root.addEventListener('click', onClick, true);
     document.addEventListener('toggle', onToggle, true);
-    // The close event is queued, so it can arrive after another disclosure has already opened.
+    // Escape and the Close button close through closeDetails, which puts the content back before the dialog stops being open, so a
+    // dialog that is hidden never still holds it. The queued close event is only an idempotent fallback for a close from elsewhere.
+    panel.addEventListener('cancel', (event) => { event.preventDefault(); closeDetails(true); });
+    panel.querySelector('form')?.addEventListener('submit', (event) => { event.preventDefault(); closeDetails(true); });
     panel.addEventListener('close', () => { if (!panel.open) closeDetails(true); });
     addEventListener('beforeprint', () => print(true));
     addEventListener('afterprint', () => print(false));
