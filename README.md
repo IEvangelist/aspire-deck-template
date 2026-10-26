@@ -441,6 +441,47 @@ language stay neutral, which is what makes the colored ones stand out.
   service, and `AppHost.cs` with `AddGoApp` from `Aspire.Hosting.Go`
   (`aspire add go`), which is the only part tinted teal.
 
+### Hold long detail in a disclosure
+
+Use a native `<details>` with a `<summary>` for supporting material you want at
+hand but not on the slide, such as a long history or a full listing. There is no
+attribute to add: every `<details>` on a slide is enhanced automatically, so a
+generated deck cannot expand a slide past the screen.
+
+````markdown
+<!-- .slide: id="history" -->
+## The history
+
+<details>
+<summary>Show the full history</summary>
+
+- Entry one
+- Entry two
+
+```bash
+aspire logs api --follow
+```
+</details>
+````
+
+Leave a blank line after `</summary>` so the Markdown inside renders.
+
+- **Presenting.** The summary opens its content in one modal dialog with its
+  own scroll, instead of expanding the slide. The slide, the address, the
+  counter, and every scroll position stay exactly as they were, so the audience
+  never loses its place. Escape or Close returns you to the summary, and Next
+  and Back work as before. Deck keys do nothing while the dialog is open, and a
+  slide change, the overview, a mode switch, or printing closes it.
+- **Reading mode** expands it inline, as a plain `<details>`. A disclosure
+  written `<details open>` starts open there and starts closed while presenting.
+- **Print** includes the content: every disclosure is printed open.
+- The speaker view's previews and the overview keep it closed and ignore a
+  click. Without script it is a plain `<details>`, so it also works when the
+  Markdown is read in the repository.
+- Links, code windows, and Copy inside the dialog work as on a slide. A
+  disclosure nested inside another opens inside the dialog. Put long content
+  here rather than shrinking the type.
+
 ### Design components
 
 The shell ships a few reusable parts in the aspire.dev style. They are plain
@@ -458,6 +499,7 @@ syntax and nothing to change in TypeScript. Copy working examples from
 | Windows | Fenced code and `data-diagram` graphs share one window chrome. Name a code window with `data-caption`; a diagram uses its JSON `title`, or `data-caption` on the `div`. |
 | Tables, quotes, keys | Standard Markdown tables become a rounded panel, `> a quote` becomes a quote panel with an accent mark, and `<kbd>Down</kbd>` renders a key cap. |
 | Centered slide | Reveal's native `<!-- .slide: class="center" -->` vertically centers a sparse slide. Content slides otherwise keep one top anchor. |
+| Disclosure | A native `<details>` with a `<summary>` holds long detail. While presenting it opens in a dialog, so the slide never grows. See [Hold long detail in a disclosure](#hold-long-detail-in-a-disclosure). |
 | Accent color | `data-accent="cyan"` (or `pink`, `teal`) in a slide comment retargets that slide's kicker, accent word, and bullets; on a `.card` it retargets just that card. Without it a slide keeps the Aspire purple. The starter uses cyan for code and reference slides and teal for running it. Use it for a few chapter labels, not on every slide. |
 
 The title slide adds the aspire.dev hero grid (1px lines on a 72px cell that

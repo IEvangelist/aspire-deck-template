@@ -15,6 +15,7 @@ import diagramsUrl from '../diagrams.json?url&no-inline';
 import { assetUrl, description, parseDeckJson, type DeckConfig, type SlideNumber } from './config';
 import { prepareCode, preloadCodeLanguages, syncCodeFocus } from './code';
 import { checkTerminalFocusSource, prepareTerminalFocus, syncTerminalFocus } from './terminal-focus';
+import { closeDetails, detailsOpen, expandForPrint, prepareDetails, syncDetails, type DetailsMode } from './details';
 import { iconElement, loadIcons, renderIcons } from './icons';
 import { iconAliases } from './icon-names';
 import { parseDiagramJson } from './diagram-config';
@@ -39,6 +40,7 @@ const root = element('presentation', HTMLElement);
 const viewport = element('slide-viewport', HTMLElement);
 const toolbar = element('toolbar', HTMLElement);
 const menu = element('deck-menu', HTMLDialogElement);
+const detailsDialog = element('slide-details', HTMLDialogElement);
 const menuButton = element('menu-toggle', HTMLButtonElement);
 const previous = element('previous', HTMLButtonElement);
 const next = element('next', HTMLButtonElement);
@@ -185,6 +187,11 @@ function compact() {
   return !reading && !printMode && !receiver && compactViewport.matches;
 }
 
+// How a slide's <details> behaves (details.ts): a modal dialog while presenting, native inline in reading, open in print.
+function detailsMode(): DetailsMode {
+  return receiver ? 'inert' : printMode ? 'print' : reading ? 'inline' : 'dialog';
+}
+
 function naturalLayout() {
   return reading || compact();
 }
@@ -231,6 +238,7 @@ function synchronize() {
   document.documentElement.style.setProperty('--slide-scale', String(naturalLayout() ? 1 : deck.getScale()));
   syncCodeFocus(current, staticMode());
   syncTerminalFocus(!reading && !printMode, staticMode());
+  syncDetails(detailsMode());
 }
 
 function targetFor(hash: string): HTMLElement | undefined {
@@ -313,6 +321,7 @@ function showCurrentStep() {
 }
 
 function goTo(slide: HTMLElement, fragment = -1) {
+  closeDetails();
   finishReveals(current);
   const indices = deck.getIndices(slide);
   deck.slide(indices.h, indices.v, staticMode() ? -1 : fragment);
@@ -334,6 +343,7 @@ function closeMenu() {
 
 function toggleReading() {
   if (receiver) return;
+  closeDetails();
   const slide = current;
   reading = !reading;
   const url = new URL(location.href);
@@ -387,6 +397,7 @@ function wrapSlides() {
       slide.dataset.backgroundImage = assetUrl(slide.dataset.backgroundImage, import.meta.env.BASE_URL, location.origin);
     }
   }
+  if (printMode) expandForPrint(root);
 }
 
 function prepareSlides() {
@@ -457,10 +468,12 @@ function resendNotesPosition(event: MessageEvent) {
 }
 
 // Controls always keep their own keys. A focused code body or diagram region keeps the arrow keys only while it has
-// something to scroll, so clicking a short code block never strands the presenter's Back/Next keys.
-function focusKeepsKeys(target: Element | null) {
+// something to scroll, so clicking a short code block never strands the presenter's Back/Next keys. A focused summary keeps only
+// Enter and Space, which open it; the arrows and paging keys still move through the deck.
+function focusKeepsKeys(target: Element | null, event?: KeyboardEvent) {
   if (!target) return false;
   if (target.closest('a, button, input, textarea, select, [contenteditable]')) return true;
+  if (target.closest('summary')) return !event || event.key === 'Enter' || event.key === ' ';
   const region = target.closest<HTMLElement>('pre, [role="region"][tabindex]');
   return region !== null && (region.scrollHeight > region.clientHeight + 1 || region.scrollWidth > region.clientWidth + 1);
 }
@@ -546,7 +559,7 @@ function wireControls() {
   });
   window.addEventListener('keydown', (event) => {
     if (!reading || menu.open || event.altKey || event.ctrlKey || event.metaKey ||
-        focusKeepsKeys(event.target instanceof Element ? event.target : null)) return;
+        focusKeepsKeys(event.target instanceof Element ? event.target : null, event)) return;
     const direction = ['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(event.key) ? 1 :
       ['ArrowLeft', 'ArrowUp', 'PageUp'].includes(event.key) ? -1 : 0;
     if (direction) {
@@ -569,21 +582,26 @@ function wireControls() {
     synchronize();
   });
   deck.on('slidechanged', () => {
+    closeDetails();
     finishReveals(current);
     if (!reading) viewport.scrollTop = 0;
     synchronize();
     showCurrentStep();
   });
   deck.on('fragmentshown', () => {
+    closeDetails();
     synchronize();
     finishReveals(current, '.fragment.visible:not(.current-fragment)');
     showCurrentStep();
   });
   deck.on('fragmenthidden', () => {
+    closeDetails();
     synchronize();
     finishReveals(current, '.fragment:not(.visible)');
     showCurrentStep();
   });
+  deck.on('overviewshown', () => closeDetails());
+  window.addEventListener('pagehide', () => closeDetails());
   deck.on('resize', synchronize);
   deck.addKeyBinding({ keyCode: 84, key: 'T', description: 'Switch theme' }, toggleTheme);
   deck.addKeyBinding({ keyCode: 82, key: 'R', description: 'Switch reading mode' }, toggleReading);
@@ -633,7 +651,7 @@ async function start() {
     autoAnimateDuration: 0.35,
     autoAnimateEasing: 'cubic-bezier(0.16, 1, 0.3, 1)',
     markdown: { headerIds: false, mangle: false },
-    keyboardCondition: () => !menu.open && !focusKeepsKeys(document.activeElement),
+    keyboardCondition: (event) => !menu.open && !detailsOpen() && !focusKeepsKeys(document.activeElement, event),
     plugins: [() => ({
       ...markdownPlugin,
       // Reveal starts only once its plugins have loaded, so the slides are wrapped before it can lay anything out. A failure
@@ -660,6 +678,7 @@ async function start() {
   applyTransitions(slides, config.chapters);
   await prepareCode(root, announce);
   prepareTerminalFocus(root);
+  prepareDetails(root, detailsDialog, { mode: detailsMode(), overview: () => deck.isOverview(), focus: focusPresentation });
   await renderIcons();
   await document.fonts.ready;
   deck.sync();

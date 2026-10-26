@@ -141,6 +141,15 @@ Reveal's native attribute comments, and all keep working in reading and print:
   `data-caption`; never fake window chrome in your own HTML.
 - Tables, block quotes, `<kbd>`, and Reveal's native `class="center"` (vertical
   centering for a sparse slide) are styled by the shell.
+- Hold long supporting content in a native `<details>` with a `<summary>` (leave
+  a blank line after `</summary>` so the Markdown inside renders), never in
+  content that grows the slide. There is no attribute to add; every slide
+  `<details>` is enhanced. While presenting, the summary opens the content in
+  one modal dialog with its own scroll, so the slide, address, counter, and
+  scroll position never change; Escape or Close returns to the summary. Reading
+  shows it inline, print opens every disclosure, and the speaker view's previews
+  and the overview keep it closed. Do not hand-build a toggle, accordion, or
+  inline expander: an expanded slide can leave the presenter stranded.
 - The hero grid belongs to the generated title slide only. Do not add grid or
   dot backgrounds to content slides; the ambient glow is already applied.
 

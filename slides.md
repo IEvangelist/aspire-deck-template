@@ -615,7 +615,7 @@ card with its own.
 | `layout-split`, `align-center` | Columns and alignment |
 | A code fence with `data-caption` | A titled window with Copy |
 
-Nested `<section>` elements make vertical slides, so use `layout-split` or `layout-comparison` for columns. See the [Markdown reference](https://revealjs.com/markdown/).
+Nested `<section>` elements make vertical slides, so use `layout-split` or `layout-comparison` for columns. A native `<details>` is a dialog while presenting and inline when reading. See the [Markdown reference](https://revealjs.com/markdown/).
 <!-- .element: class="source-line" -->
 
 Note:
@@ -632,7 +632,12 @@ layout-statement, layout-split, and layout-comparison, and align-left,
 align-center, and align-right align an image or a whole slide. Columns go in
 layout-copy and layout-visual groups: a nested section element is a vertical
 slide, not a column. A fenced block takes data-caption for its window title,
-and Copy always keeps the exact source.
+and Copy always keeps the exact source. Long supporting content can go in a
+native details element with a summary. While presenting, the summary opens that
+content in one dialog, so the slide never grows or moves and the address,
+counter, and scroll position stay put; Escape or Close returns to the summary.
+Reading mode expands it inline, print includes it, and without script it is a
+plain details element.
 
 ---
 

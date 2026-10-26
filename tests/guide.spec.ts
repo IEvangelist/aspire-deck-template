@@ -235,6 +235,20 @@ Public text.
     }
   });
 
+  test('the disclosure behavior the guide gives is what the deck does, and the docs agree', async ({ page }) => {
+    await ready(page);
+    expect(flat(await shown(page, 'guide-markdown'))).toContain('A native <details> is a dialog while presenting and inline when reading.');
+    const notes = flat((await page.locator('#guide-markdown aside.notes').textContent()) ?? '');
+    for (const claim of ['opens that content in one dialog', 'the slide never grows or moves', 'Escape or Close returns to the summary',
+      'Reading mode expands it inline, print includes it', 'without script it is a plain details element']) {
+      expect(notes, claim).toContain(claim);
+    }
+    for (const file of ['README.md', 'SKILL.md']) {
+      const document = flat(readFileSync(file, 'utf8'));
+      for (const word of ['<details>', '<summary>', 'one modal dialog', 'Escape or Close', 'print']) expect(document, `${file} documents ${word}`).toContain(word);
+    }
+  });
+
   test('the step list the guide shows is real Reveal syntax', async ({ page }) => {
     await authorMarkdown(page, `<!-- .slide: id="steps" -->
 ## Steps

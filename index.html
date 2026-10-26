@@ -31,6 +31,13 @@
         <section data-markdown data-separator="^---[ \t]*\r?$" data-separator-vertical="^--[ \t]*\r?$" data-separator-notes="^Notes?:"></section>
        </div>
       </div>
+      <dialog id="slide-details" class="details-dialog" data-prevent-swipe>
+        <div class="details-header">
+          <p id="details-title" class="details-title"></p>
+          <form method="dialog"><button type="submit" aria-label="Close details"><span data-icon="close"></span></button></form>
+        </div>
+        <div class="details-scroll" role="region" tabindex="0" aria-labelledby="details-title"></div>
+      </dialog>
     </main>
     <dialog id="deck-menu" class="deck-menu" aria-labelledby="menu-heading">
       <div class="menu-heading">
