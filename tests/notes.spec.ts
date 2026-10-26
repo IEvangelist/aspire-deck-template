@@ -1,33 +1,8 @@
 import { expect, test, type Frame, type Page } from '@playwright/test';
-import { authorMarkdown, jump, ready, renderedIds, settleMotion } from './helpers';
+import { authorMarkdown, jump, openSpeakerView, previewFrame, ready, renderedIds, settleMotion } from './helpers';
 import { starter } from './starter';
 
 // Everything here uses the real Reveal speaker view: a popup window with live current and upcoming previews.
-async function openSpeakerView(page: Page, how: 'key' | 'menu' = 'key') {
-  const popup = page.waitForEvent('popup');
-  if (how === 'key') await page.keyboard.press('s');
-  else {
-    await page.locator('#menu-toggle').click();
-    await page.locator('#notes').click();
-  }
-  const view = await popup;
-  await view.waitForLoadState('load');
-  await expect(view.locator('#connection-status')).toBeHidden({ timeout: 20_000 });
-  const current = await previewFrame(view, '#current-slide iframe');
-  const upcoming = await previewFrame(view, '#upcoming-slide iframe');
-  return { view, current, upcoming };
-}
-
-async function previewFrame(view: Page, selector: string): Promise<Frame> {
-  await expect(view.locator(selector)).toHaveCount(1, { timeout: 20_000 });
-  // The popup sees a preview's finished document even when that preview navigates late or reloads. A navigating
-  // iframe briefly has a document with no root element yet, so a slow origin must not make this wait throw.
-  await view.waitForFunction((css) => document.querySelector<HTMLIFrameElement>(css)?.contentDocument?.documentElement?.dataset.deckReady === 'true', selector, { timeout: 30_000 });
-  const frame = await (await view.locator(selector).elementHandle())!.contentFrame();
-  if (!frame) throw new Error(`The ${selector} preview has no document.`);
-  return frame;
-}
-
 const previewState = (frame: Frame) => frame.evaluate(() => {
   const present = [...document.querySelectorAll('.slides section.present')].pop();
   const viewport = document.getElementById('slide-viewport')!;

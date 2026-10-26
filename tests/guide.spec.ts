@@ -217,6 +217,24 @@ Public text.
     await expect(page.locator('#run-and-reveal [data-terminal], #run-and-reveal .terminal-panel')).not.toHaveCount(0);
   });
 
+  test('the terminal focus syntax the guide shows is what the starter slide uses, and the docs agree', async ({ page }) => {
+    await ready(page);
+    const text = await shown(page, 'guide-teach');
+    expect(text).toContain('data-terminal-focus="true"');
+    expect(text).toContain('terminal-support');
+    const notes = flat((await page.locator('#guide-teach aside.notes').textContent()) ?? '');
+    for (const claim of ['Reading mode and print keep every line', 'reduced motion shows the finished layout at once', 'a focus value other than true stops the load']) {
+      expect(notes, claim).toContain(claim);
+    }
+    await expect(page.locator('#run-and-reveal')).toHaveAttribute('data-terminal-focus', 'true');
+    await expect(page.locator('#run-and-reveal .terminal-support')).toHaveCount(1);
+    for (const file of ['README.md', 'SKILL.md']) {
+      const document = flat(readFileSync(file, 'utf8'));
+      expect(document, file).toContain('data-terminal-focus="true"');
+      expect(document, file).toContain('terminal-support');
+    }
+  });
+
   test('the step list the guide shows is real Reveal syntax', async ({ page }) => {
     await authorMarkdown(page, `<!-- .slide: id="steps" -->
 ## Steps

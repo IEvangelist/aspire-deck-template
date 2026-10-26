@@ -62,7 +62,7 @@ const focusBlocks: FocusBlock[] = [];
 // A command that asks for JSON must show the complete JSON document, not an excerpt.
 const claimsJson = /(?:^|\s)(?:--json|--(?:format|output)[ =]json|-o[ =]json)(?=\s|$)/i;
 
-function slideOf(node: Element) {
+export function slideOf(node: Element) {
   return `slides.md: slide "${node.closest('section')?.id ?? 'unknown'}"`;
 }
 

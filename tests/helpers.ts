@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Frame, type Page, type Request as PlaywrightRequest } from '@playwright/test';
 
 export const exampleMarkdown = `<!-- .slide: id="first-idea" -->
 ## First idea
@@ -93,8 +93,23 @@ export async function expectCopied(page: Page, source: string | null) {
 }
 
 export async function ready(page: Page, path = '?mode=present') {
-  await page.goto(path);
-  await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');
+  // When the browser itself cannot make a request (a socket or buffer error on a busy host, say), the page stays unstarted with
+  // nothing else to show. The failed requests are named if the deck does not become ready, so that is never mistaken for an app error.
+  const unreachable: string[] = [];
+  const record = (request: PlaywrightRequest) => {
+    const reason = request.failure()?.errorText ?? 'failed';
+    if (reason !== 'net::ERR_ABORTED') unreachable.push(`${new URL(request.url()).pathname} (${reason})`);
+  };
+  page.on('requestfailed', record);
+  try {
+    await page.goto(path);
+    await expect(page.locator('html')).toHaveAttribute('data-deck-ready', 'true');
+  } catch (error) {
+    if (unreachable.length) throw new Error(`The deck did not start because the browser could not load ${unreachable.join(', ')}.`, { cause: error });
+    throw error;
+  } finally {
+    page.off('requestfailed', record);
+  }
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -132,6 +147,32 @@ export async function jump(page: Page, id: string) {
   await page.locator(`#slide-list a[data-slide="${id}"]`).click();
   await expect(page.locator('#deck-menu')).not.toBeVisible();
   await expect(page.locator(`#${id}`)).toBeVisible();
+}
+
+export async function previewFrame(view: Page, selector: string): Promise<Frame> {
+  await expect(view.locator(selector)).toHaveCount(1, { timeout: 20_000 });
+  // The popup sees a preview's finished document even when that preview navigates late or reloads. A navigating
+  // iframe briefly has a document with no root element yet, so a slow origin must not make this wait throw.
+  await view.waitForFunction((css) => document.querySelector<HTMLIFrameElement>(css)?.contentDocument?.documentElement?.dataset.deckReady === 'true', selector, { timeout: 30_000 });
+  const frame = await (await view.locator(selector).elementHandle())!.contentFrame();
+  if (!frame) throw new Error(`The ${selector} preview has no document.`);
+  return frame;
+}
+
+// The real Reveal speaker view: a popup window with live current and upcoming previews.
+export async function openSpeakerView(page: Page, how: 'key' | 'menu' = 'key') {
+  const popup = page.waitForEvent('popup');
+  if (how === 'key') await page.keyboard.press('s');
+  else {
+    await page.locator('#menu-toggle').click();
+    await page.locator('#notes').click();
+  }
+  const view = await popup;
+  await view.waitForLoadState('load');
+  await expect(view.locator('#connection-status')).toBeHidden({ timeout: 20_000 });
+  const current = await previewFrame(view, '#current-slide iframe');
+  const upcoming = await previewFrame(view, '#upcoming-slide iframe');
+  return { view, current, upcoming };
 }
 
 export async function renderedIds(page: Page) {

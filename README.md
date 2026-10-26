@@ -366,6 +366,39 @@ node -p "JSON.stringify({ web: 8000 }, null, 2)"
 - There is no autoplay, typing animation, or live shell. Nothing runs on the
   page: the starter's example is a real Node 22 capture, labeled as recorded.
 
+**Give a long output the whole slide (optional).** An output scrolls in a short
+box beneath the heading. On a slide where the output is the point, opt in with
+`data-terminal-focus="true"` in the slide comment, and mark the provenance line
+that can step aside with the class `terminal-support`:
+
+````markdown
+<!-- .slide: id="run-and-reveal" data-terminal-focus="true" -->
+## Run it, then **reveal** the result
+
+(the command fence and its output fence, as above)
+
+Recorded with Node 22 on 2026-10-23; the output is pasted exactly as printed.
+<!-- .element: class="source-line terminal-support" -->
+````
+
+- **Presenting.** When the output appears (Next, a deep link such as
+  `#/run-and-reveal/0`, Forward, or the speaker view), the kicker and heading fold
+  away, every `terminal-support` line is hidden and leaves the Tab order, and
+  the window moves up into the freed space. The output flexes to the remaining
+  height, above the slide counter and the copy message, and scrolls on its own;
+  the header, command, and Copy stay put. A short output keeps its natural
+  height. Back restores the standard slide, heading, line, and links included.
+- **Everything else keeps every line.** Reading mode and print show the heading,
+  the support lines, and the complete output, as before. With reduced motion
+  there is no stepping, so the finished layout shows at once and nothing
+  animates; otherwise one short ease moves the heading away. The speaker view's
+  current and upcoming previews follow the audience's output.
+- **Only what you mark is hidden.** Nothing else on the slide is inferred. The
+  only accepted value is `"true"`; an empty or other value, the attribute on an
+  element instead of the slide comment, a slide without exactly one recorded
+  terminal, or a terminal inside a layout column or card stops the load with
+  the slide id. Leave the attribute out for the standard layout.
+
 **Color-code the packages behind the APIs.** Show which integration package
 owns each call: a legend above the code, bold colored API names, and a colored
 rail beside each statement. It is optional, visual only, and set with native
@@ -697,7 +730,7 @@ On a new machine, install the test browser once with
 
 `npm test` validates **your deck**. It checks authoring, optional and invalid
 config, keyboard/menu navigation, notes, fragments, copying, code steps and
-terminal output, the slide counter, accessibility, geometry, and root/renamed-path
+terminal output (including terminal focus), the slide counter, accessibility, geometry, and root/renamed-path
 production builds. None of its tests depends on a starter slide id or copy, so it
 keeps passing after you replace, rename, remove, or reorder every starter and
 guide slide. No app or infrastructure is started.

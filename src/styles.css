@@ -246,6 +246,14 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
    badge it stays where it is and leaves the badge room. The badge precedes the message in the document, so a sibling selector is enough. */
 .slide-badge[data-position='bottom-left']:not([hidden], :empty) ~ .deck-status { bottom: calc(max(var(--badge-edge), env(safe-area-inset-bottom, 0px)) + var(--badge-height) + 8px); }
 .slide-badge[data-position='bottom-right']:not([hidden], :empty) ~ .deck-status { max-width: calc(100% - 2 * var(--badge-side) - 120px); }
+/* The room the fixed counter and the message take at the screen edges, for content that fills a slide (terminal focus). The message is
+   one line resting 14px above the bottom edge, and beside a bottom-left counter it stacks above it. The speaker view shows neither. */
+:root { --status-height: 43px; --ui-clear-top: 0px; --ui-clear-bottom: 0px; }
+:root:not([data-receiver='true']) { --ui-clear-bottom: calc(14px + var(--status-height) + 8px); }
+:root:not([data-receiver='true']):has(.slide-badge[data-position='bottom-left']:not([hidden], :empty)) { --ui-clear-bottom: calc(max(var(--badge-edge), env(safe-area-inset-bottom, 0px)) + var(--badge-height) + 8px + var(--status-height) + 8px); }
+:root:not([data-receiver='true']):has(.slide-badge[data-position^='top']:not([hidden], :empty)) { --ui-clear-top: calc(var(--badge-edge) + var(--badge-height) + 8px); }
+/* A bottom-right counter narrows the message to 176px at 320px wide, where it wraps to two lines. */
+@media (max-width: 359px) { :root:has(.slide-badge[data-position='bottom-right']:not([hidden], :empty)) { --status-height: 58px; } }
 .failure { max-width: 760px; margin: 64px auto; padding: 0 24px; }
 .failure h1 { font-size: 36px; line-height: 1.3; }
 .failure p { line-height: 1.65; overflow-wrap: anywhere; }
@@ -421,6 +429,29 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
 .terminal-clip { min-height: 0; overflow: hidden; }
 :root:not([data-static='true']) .reveal .terminal-response { transition: grid-template-rows 280ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out, visibility 280ms; }
 :root:not([data-static='true']) .reveal .terminal-response.fragment:not(.visible) { grid-template-rows: 0fr; }
+
+/* Terminal focus (opt-in with data-terminal-focus="true", presentation only). Once the output is revealed the kicker and heading fold
+   away (a grid row eases from 1fr to 0fr, like the output), the support copy marked .terminal-support is hidden, and the window moves
+   up into the freed space with its output flexing to the remaining height, above the fixed counter and message. The output has no 300px
+   cap here, so it takes exactly the room there is and scrolls on its own; reading and print show every line as before. The fold carries
+   the heading's spacing, so the slide's composition before the reveal is the standard one. */
+.reveal section[data-terminal-focus='true'] > .slide-content { display: flex; flex-direction: column; }
+.reveal section[data-terminal-focus='true'] .terminal-panel { flex: 0 1 auto; min-height: 0; margin-top: 0; }
+.reveal section[data-terminal-focus='true'] .terminal-response { flex: 0 1 auto; min-height: 0; }
+.reveal section[data-terminal-focus='true'] pre.terminal-output { max-height: none; height: 100%; }
+.terminal-lead { display: grid; grid-template-rows: 1fr; flex: none; }
+.terminal-lead-body { min-height: 0; overflow: hidden; }
+.terminal-lead-body > :last-child { margin-bottom: 28px; }
+.reveal section.is-terminal-focused { height: 100%; }
+.reveal section.is-terminal-focused > .slide-content { height: 100%; padding-bottom: max(16px, calc(var(--ui-clear-bottom) / var(--slide-scale, 1) - 24px)); }
+.reveal section.is-terminal-focused .terminal-lead { grid-template-rows: 0fr; }
+.reveal section.is-terminal-focused .terminal-lead-body { opacity: 0; }
+.reveal section.is-terminal-focused .terminal-support { display: none; }
+:root:not([data-static='true'], [data-receiver='true']) .reveal section[data-terminal-focus='true'] .terminal-lead { transition: grid-template-rows 280ms cubic-bezier(0.16, 1, 0.3, 1); }
+:root:not([data-static='true'], [data-receiver='true']) .reveal section[data-terminal-focus='true'] .terminal-lead-body { transition: opacity 200ms ease-out; }
+/* A narrow presentation flows the slide in the screen, so the focused slide is exactly one screen high and keeps clear of the counter and message. */
+:root[data-compact='true'] .reveal .slides section.is-terminal-focused { height: calc(100dvh - var(--toolbar-height)) !important; padding-top: max(24px, calc(var(--ui-clear-top) - 12px)); padding-bottom: calc(var(--ui-clear-bottom) - 12px); }
+:root[data-compact='true'] .reveal section.is-terminal-focused > .slide-content { padding-bottom: 12px; }
 
 /* Cards: an optional row of equal peers. Each card takes an icon, a title and a short sentence. */
 .reveal .card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; margin-top: 40px; }
@@ -598,7 +629,7 @@ button .octicon, .menu-controls a .octicon { width: 20px; height: 20px; }
   .toolbar { padding: 4px 12px; gap: 8px; }
   .current-title { display: none; }
   .brand-name { display: none; }
-  :root { --badge-height: 28px; --badge-side: 12px; }
+  :root { --badge-height: 28px; --badge-side: 12px; --status-height: 40px; }
   .slide-badge { min-width: calc(7ch + 18px); padding: 0 8px; font-size: 12px; }
   .toolbar nav { gap: 6px; }
   .toolbar button { padding: 0 10px; }

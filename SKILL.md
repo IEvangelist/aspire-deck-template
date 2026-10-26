@@ -325,6 +325,22 @@ recording as a live run. Output labeled `json`, or any output for a command with
 be complete valid JSON; a missing, empty, or incomplete output fails visibly.
 Never add autoplay, fake typing, a live shell, or a visible status row.
 
+Terminal focus is optional and only for a slide whose output is the point.
+Write `data-terminal-focus="true"` in the slide comment
+(`<!-- .slide: id="run-and-reveal" data-terminal-focus="true" -->`) and add the class
+`terminal-support` to the provenance line
+(`<!-- .element: class="source-line terminal-support" -->`). When the output
+appears while presenting, the kicker, heading, and support lines fold away
+(the support lines also leave the Tab order), and the window moves up so the
+output takes the remaining height, above the counter and message, scrolling on
+its own; Back restores the standard slide. Reading, print, and the speaker view
+are unaffected except that the previews follow the audience; reduced motion
+shows the finished layout at once. Only the exact value `"true"` is valid, and
+the slide needs exactly one recorded terminal directly on it, not in a layout
+column or card; anything else fails visibly with the slide id. Never mark other
+content `terminal-support` expecting it to be inferred, and never hide the only
+copy of a source or a warning.
+
 ## Slide motion
 
 Moving between slides is Reveal's own transition system, set at three levels.

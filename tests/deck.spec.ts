@@ -253,6 +253,14 @@ test('a failed Markdown request is a real error', async ({ page }) => {
   await expect(page.locator('#failure-detail')).toContainText('slides.md: could not load (HTTP 404)');
 });
 
+test('a page whose scripts the browser cannot fetch is reported by name, not as a bare missing attribute', async ({ page }) => {
+  // A transport failure (a socket or buffer error on a busy host, say) leaves the page unstarted. The shared wait still fails, and its
+  // message names what the browser could not load, so that is never mistaken for a slow start or an app error.
+  await page.route((url) => /\.(?:ts|js|mjs)$/.test(url.pathname), (route) => route.abort('connectionreset'));
+  const failure = await ready(page).then(() => undefined, (error: unknown) => error as Error);
+  expect(failure?.message).toMatch(/The deck did not start because the browser could not load .*\.(?:ts|js|mjs) \(net::ERR_CONNECTION_RESET\)/);
+});
+
 test('native Markdown image and fragment attributes are preserved', async ({ page }) => {
   await authorMarkdown(page, exampleMarkdown);
   await ready(page);

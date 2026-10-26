@@ -14,6 +14,7 @@ import markdownUrl from '../slides.md?url&no-inline';
 import diagramsUrl from '../diagrams.json?url&no-inline';
 import { assetUrl, description, parseDeckJson, type DeckConfig, type SlideNumber } from './config';
 import { prepareCode, preloadCodeLanguages, syncCodeFocus } from './code';
+import { checkTerminalFocusSource, prepareTerminalFocus, syncTerminalFocus } from './terminal-focus';
 import { iconElement, loadIcons, renderIcons } from './icons';
 import { iconAliases } from './icon-names';
 import { parseDiagramJson } from './diagram-config';
@@ -229,6 +230,7 @@ function synchronize() {
   }
   document.documentElement.style.setProperty('--slide-scale', String(naturalLayout() ? 1 : deck.getScale()));
   syncCodeFocus(current, staticMode());
+  syncTerminalFocus(!reading && !printMode, staticMode());
 }
 
 function targetFor(hash: string): HTMLElement | undefined {
@@ -596,6 +598,7 @@ async function start() {
   applySlideNumber(config.slideNumber);
   const diagrams = parseDiagramJson(diagramSource);
   if (!markdown.trim()) throw new Error('slides.md: the file is empty. Add a Markdown slide.');
+  checkTerminalFocusSource(markdown);
   await loadIcons(Object.keys(iconAliases));
   renderIntro(config);
   const source = root.querySelector('section[data-markdown]');
@@ -656,6 +659,7 @@ async function start() {
   prepareSlides();
   applyTransitions(slides, config.chapters);
   await prepareCode(root, announce);
+  prepareTerminalFocus(root);
   await renderIcons();
   await document.fonts.ready;
   deck.sync();

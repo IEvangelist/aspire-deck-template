@@ -208,7 +208,7 @@ order on narrow screens and in reading mode.
 
 ---
 
-<!-- .slide: id="run-and-reveal" data-kicker="Terminal" data-accent="teal" -->
+<!-- .slide: id="run-and-reveal" data-kicker="Terminal" data-accent="teal" data-terminal-focus="true" -->
 ## Run it, then **reveal** the result
 
 ```bash
@@ -225,12 +225,18 @@ node -p "JSON.stringify({ web: 8000, api: 8001, cache: 8002 }, null, 2)"
 ```
 
 Recorded with Node 22 on 2026-10-23; the output is pasted exactly as printed. Advance once to reveal it.
-<!-- .element: class="source-line" -->
+<!-- .element: class="source-line terminal-support" -->
 
 Note:
 Nothing runs on this page. The command was run once and its complete output
 pasted here, so the label stays on screen. Replace both with your own
 capture. Output labeled json must be complete, valid JSON.
+This slide also opts in to terminal focus: its slide comment sets
+data-terminal-focus="true" and the provenance line above is marked
+terminal-support. When the output appears while presenting, the heading and
+that line fold away and the window moves up to use the whole slide, which
+matters most for a long output that would otherwise scroll in a short box.
+Reading mode and print keep the heading and the line.
 
 ---
 
@@ -640,7 +646,7 @@ and Copy always keeps the exact source.
 
 <!-- .element: class="feature-list" -->
 
-Package colors take `data-pkg`, `data-add`, `data-apis`, and `data-lines`. A mistake stops the load and names the slide.
+Package colors take `data-pkg`, `data-add`, `data-apis`, and `data-lines`. Add `data-terminal-focus="true"` and a `terminal-support` line to give a presented output the whole slide. A mistake names the slide.
 
 Note:
 Cue: four patterns, each a live slide you can open from this list. Step
@@ -652,8 +658,15 @@ pink, or teal. Side by side reuses layout-split with two layout-visual groups,
 so each code panel keeps its own caption and Copy. A recorded command puts
 data-terminal on the command fence and the complete, real output in the next
 fence; one Next reveals it, and the label stays on screen because nothing runs
-on the page. A step list outside the block, an unknown color, an API that is not
-in the code, or a missing output stops the load with the slide named.
+on the page. A long output gets more room with terminal focus: put
+data-terminal-focus="true" in the slide's attribute comment and give the
+provenance line the class terminal-support. When the output appears while
+presenting, the heading and that line fold away and the window moves up to take
+the whole slide, with the output scrolling on its own. Reading mode and print
+keep every line, reduced motion shows the finished layout at once, and the
+speaker view's previews follow the audience. A step list outside the block, an
+unknown color, an API that is not in the code, a missing output, or a focus
+value other than true stops the load with the slide named.
 
 ---
 
